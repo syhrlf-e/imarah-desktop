@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  /* Variabel warna khas Imarah */
+  --color-masjid: #10b981;
+  --color-background: #0f172a;
+  --color-card: #1e293b;
+
+  /* Font smoothing biar teks di desktop keliatan tajam */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-slate-200 antialiased overflow-hidden;
+  }
+}
