@@ -3,15 +3,12 @@ import { Link } from "react-router-dom";
 import { PropsWithChildren } from "react";
 import { useNetwork } from "@/hooks/useNetwork";
 import { WifiOff } from "lucide-react";
-import { Toaster } from "@/components/Toast";
-import GlobalToastListener from "@/components/GlobalToastListener";
+import imgLogin from "@/assets/img_login.png";
 
 export default function Guest({ children }: PropsWithChildren) {
     const isOnline = useNetwork();
     return (
         <div className="flex flex-col min-h-screen font-sans">
-            <Toaster />
-            <GlobalToastListener />
             {!isOnline && (
                 <div className="bg-red-500 text-white px-4 py-2.5 text-center text-sm font-medium flex items-center justify-center space-x-2 shadow-sm relative z-50 w-full shrink-0">
                     <WifiOff size={16} />
@@ -22,7 +19,10 @@ export default function Guest({ children }: PropsWithChildren) {
                 {/* Left Area - Image (Fixed 60% di Layar Besar) */}
                 <div className="relative hidden lg:block lg:w-[60%] bg-black">
                     {/* Background Image */}
-                    <div className="absolute inset-0 bg-[url('/images/img_login.png')] bg-cover bg-center"></div>
+                    <div
+                        className="absolute inset-0 bg-cover bg-center"
+                        style={{ backgroundImage: `url(${imgLogin})` }}
+                    ></div>
 
                     {/* Base Overlay to slightly darken everything */}
                     <div className="absolute inset-0 bg-black/20"></div>

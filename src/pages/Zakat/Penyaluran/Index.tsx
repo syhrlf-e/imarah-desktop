@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { usePenyaluranData, usePenyaluranMutation, useMustahiqData } from "@/hooks/api/useZakat";
 import AppLayout from "@/layouts/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import EmptyState from "@/components/EmptyState";
 import PrimaryButton from "@/components/PrimaryButton";
 import ZakatForm from "./Components/ZakatForm";
@@ -75,14 +77,29 @@ const formatDateShort = (dateStr: string) => {
 const EMPTY_PAGE = { data: [] as Transaction[], links: [], from: 0, to: 0, total: 0, current_page: 1, last_page: 1, prev_page_url: null, next_page_url: null };
 
 // ── Main Component ─────────────────────────────────────────
-export default function Index({ transactions: transactionsProp, mustahiqs: mustahiqsProp }: Props) {
-    const transactions = transactionsProp ?? EMPTY_PAGE;
-    const mustahiqs = mustahiqsProp ?? [];
+export default function PenyaluranIndex() {
     const [searchParams, setSearchParams] = useSearchParams();
-     const auth = { user: { role: 'super_admin' } };
-    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(
-        auth.user.role,
-    );
+    const { user } = useAuth();
+    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? '');
+
+    const { data: transactionsRes } = usePenyaluranData(searchParams.toString());
+    const { remove } = usePenyaluranMutation();
+
+    const rootData = transactionsRes?.data ?? {};
+    const rawTransactions = rootData.transactions ?? transactionsRes ?? EMPTY_PAGE;
+    const metaParams = rawTransactions.meta ?? rawTransactions;
+    
+    const transactions = {
+        ...rawTransactions,
+        current_page: metaParams.current_page || 1,
+        last_page: metaParams.last_page || 1,
+        total: metaParams.total || 0,
+        prev_page_url: metaParams.current_page > 1 ? "yes" : null,
+        next_page_url: metaParams.current_page < metaParams.last_page ? "yes" : null,
+    };
+    
+    const localTransactions = rawTransactions.items ?? rawTransactions.data ?? [];
+    const mustahiqs = rootData.mustahiqs ?? [];
 
     const [search, setSearch] = useState("");
     const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">(
@@ -121,13 +138,13 @@ export default function Index({ transactions: transactionsProp, mustahiqs: musta
 
     // Filter client-side untuk toggle jenis zakat
     const filteredData = jenisFilter
-        ? transactions.data.filter((t) => t.category === jenisFilter)
-        : transactions.data;
+        ? localTransactions.filter((t: Transaction) => t.category === jenisFilter)
+        : localTransactions;
 
     const confirmDelete = async () => {
         if (confirmDeleteId) {
             try {
-                // TODO: DELETE API call
+                await remove.mutateAsync(confirmDeleteId);
                 setConfirmDeleteId(null);
             } catch (err) { }
         }
@@ -264,9 +281,9 @@ export default function Index({ transactions: transactionsProp, mustahiqs: musta
                                     "whitespace-nowrap text-right font-bold text-red-600 text-base",
                                 render: (trx) => formatRupiah(trx.amount),
                             },
-                        ] satisfies ColumnDef<(typeof transactions.data)[0]>[]
+                        ] satisfies ColumnDef<(typeof localTransactions)[0]>[]
                     }
-                    data={transactions.data}
+                    data={localTransactions}
                     keyExtractor={(row) => row.id}
                     emptyState={
                         <EmptyState

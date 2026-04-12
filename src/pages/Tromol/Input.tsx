@@ -1,21 +1,20 @@
 import { FormEventHandler, useState } from "react";
 import { formatRupiah, parseRupiah } from "@/utils/formatter";
-import { TromolBox, User } from "@/types";
+import { TromolBox } from "@/types";
 import { Box, CheckCircle, ArrowRight, RefreshCw } from "lucide-react";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Link } from "react-router-dom";
 
 interface Props {
     tromolBox?: TromolBox;
-    auth?: {
-        user: User;
-    };
 }
 
 const DEFAULT_BOX: TromolBox = { id: '', name: 'Kotak Tromol', qr_code: '', location: null, status: 'active', created_at: '' };
-const DEFAULT_AUTH = { user: { id: '', name: 'Petugas', role: 'petugas_zakat' } as User };
 
-export default function TromolInput({ tromolBox: boxProp, auth: authProp }: Props) {
+export default function TromolInput({ tromolBox: boxProp }: Props) {
+    const { user } = useAuth();
     const tromolBox = boxProp ?? DEFAULT_BOX;
-    const auth = authProp ?? DEFAULT_AUTH;
     const [data, setData] = useState({ amount: 0 });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
@@ -32,14 +31,18 @@ export default function TromolInput({ tromolBox: boxProp, auth: authProp }: Prop
 
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
+        if (!tromolBox.id) {
+            setErrors({ amount: 'Kotak tromol tidak valid.' });
+            return;
+        }
         setProcessing(true);
         try {
-            // TODO: call API route correctly
-            // await fetch(window.location.href, { method: "POST" })
+            await api.post(`/tromol/${tromolBox.id}/input`, { amount: data.amount });
             setWasSuccessful(true);
             setFormattedAmount("");
-        } catch (error) {
-            setErrors({ amount: "Gagal menyimpan data" });
+        } catch (error: any) {
+            const errData = error?.response?.data;
+            setErrors({ amount: errData?.message ?? "Gagal menyimpan data" });
         } finally {
             setProcessing(false);
         }
@@ -59,20 +62,19 @@ export default function TromolInput({ tromolBox: boxProp, auth: authProp }: Prop
                     dicatat.
                 </p>
                 <div className="space-y-3 w-full max-w-xs">
-                    {/* In a real app, this might redirect to scanning another QR code */}
                     <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => { setWasSuccessful(false); setFormattedAmount(''); }}
                         className="w-full py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 flex items-center justify-center"
                     >
                         <RefreshCw className="w-5 h-5 mr-2" />
                         Input Lagi
                     </button>
-                    <a
-                        href="/dashboard"
+                    <Link
+                        to="/dashboard"
                         className="w-full py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 flex items-center justify-center"
                     >
                         Ke Dashboard
-                    </a>
+                    </Link>
                 </div>
             </div>
         );
@@ -93,7 +95,7 @@ export default function TromolInput({ tromolBox: boxProp, auth: authProp }: Prop
                     {tromolBox.location || "Lokasi tidak spesifik"}
                 </p>
                 <p className="text-xs text-slate-400 mt-4">
-                    Petugas: {auth.user.name}
+                    Petugas: {user?.name ?? 'Petugas'}
                 </p>
             </div>
 

@@ -1,7 +1,6 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "@/layouts/AppLayout";
-import { PageProps } from "@/types";
+import api from "@/lib/api";
 import {
     Settings,
     Building2,
@@ -12,17 +11,29 @@ import {
 } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
-export default function SettingsIndex({
-    settings = {},
-}: { settings?: Record<string, string> }) {
+import { useSettingsData, useSettingsMutation } from "@/hooks/api/useSettings";
+import { toast } from "sonner";
+
+export default function SettingsIndex() {
+    const { data: serverSettings, isLoading: loadingSettings } = useSettingsData();
+    const { update } = useSettingsMutation();
+    
     const [data, setDataForm] = useState({
         settings: {
-            masjid_name: settings?.masjid_name || "Sistem Manajemen Masjid",
-            masjid_address: settings?.masjid_address || "",
-            contact_phone: settings?.contact_phone || "",
-            zakat_fitrah_amount: settings?.zakat_fitrah_amount || "40000",
+            masjid_name: "Sistem Manajemen Masjid",
+            masjid_address: "",
+            contact_phone: "",
+            zakat_fitrah_amount: "40000",
         },
     });
+    
+    // Sinkronisasi data awal dari React Query state ke lokal form state
+    useEffect(() => {
+        if (serverSettings && Object.keys(serverSettings).length > 0) {
+            setDataForm({ settings: serverSettings });
+        }
+    }, [serverSettings]);
+
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -31,10 +42,19 @@ export default function SettingsIndex({
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
+        setErrors({});
         try {
-            // TODO: call fetch to /api/settings
-        } catch (error) {
-            // handle error
+            await update.mutateAsync(data.settings);
+            toast.success("Pengaturan berhasil disimpan");
+        } catch (error: any) {
+            const errData = error?.response?.data;
+            if (errData?.errors) {
+                Object.entries(errData.errors).forEach(([k, msgs]) =>
+                    setErrors(prev => ({ ...prev, [k]: (msgs as string[])[0] }))
+                );
+            } else {
+                toast.error(errData?.message || "Gagal menyimpan pengaturan");
+            }
         } finally {
             setProcessing(false);
         }
@@ -49,6 +69,11 @@ export default function SettingsIndex({
             />
 
             <div className="max-w-4xl">
+                {loadingSettings ? (
+                    <div className="flex justify-center items-center p-12">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                    </div>
+                ) : (
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Profil Masjid Card */}
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -240,6 +265,7 @@ export default function SettingsIndex({
                         </button>
                     </div>
                 </form>
+                )}
             </div>
         </AppLayout>
     );

@@ -2,8 +2,9 @@
 
 /* 1. Daftarkan Font Face */
 @font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('./assets/fonts/plus-jakarta-sans/PlusJakartaSans-Variable.woff2') format('woff2-variations');
+  font-family: "Plus Jakarta Sans";
+  src: url("./assets/fonts/plus-jakarta-sans/PlusJakartaSans-Variable.ttf")
+    format("truetype");
   font-weight: 100 800;
   font-style: normal;
   font-display: swap;
@@ -20,15 +21,5 @@
     @apply bg-slate-50 text-slate-900 antialiased overflow-hidden font-sans;
   }
 
-  /* Native desktop feel: nonaktifkan text selection di seluruh UI */
-  *, *::before, *::after {
-    user-select: none;
-    -webkit-user-select: none;
-  }
-
-  /* Kecuali di elemen input agar tetap bisa mengetik & copy-paste */
-  input, textarea, [contenteditable="true"] {
-    user-select: text;
-    -webkit-user-select: text;
-  }
+  /* Native desktop feel: Beberapa area UI khusus (seperti Titlebar atau Sidebar) sudah menggunakan utilitas select-none dari Tailwind */
 }

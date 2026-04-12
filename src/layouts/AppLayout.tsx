@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Toaster } from "@/components/Toast";
-import GlobalToastListener from "@/components/GlobalToastListener";
 import Sidebar from "@/components/Layout/Sidebar";
 import TopHeader from "@/components/Layout/TopHeader";
 import LoginChallengeModal from "@/components/LoginChallengeModal";
@@ -78,22 +76,39 @@ export default function AppLayout({ title, children }: Props) {
     return () => clearInterval(interval);
   }, []);
 
-  // Instant Logout on App Close
+  // Native Desktop Logic: Intercept Window Close untuk logout aman
   useEffect(() => {
-    const handleUnload = () => {
-      if (auth?.user) {
-        // Gunakan sendBeacon karena window sedang ditutup,
-        // ini paling reliabel dibanding fetch/axios biasa untuk fire-and-forget.
-        navigator.sendBeacon("/logout-beacon");
-      }
+    let unlistenFn: (() => void) | undefined;
+    
+    const setupCloseHook = async () => {
+        try {
+            // Kita bypass SSR import dengan dinamis
+            const { getCurrentWindow } = await import('@tauri-apps/api/window');
+            const unlisten = await getCurrentWindow().onCloseRequested(async (event) => {
+                const isAuth = auth?.user?.id && auth.user.id !== 0;
+                if (isAuth) {
+                    event.preventDefault(); // Batalkan penutupan jendela asli (prevent force kill)
+                    try {
+                        await api.post('/auth/logout'); // Kirim signal logout ke backend secara native
+                    } catch (e) {
+                        console.error('Logout signal API gagal, memotong lokal.');
+                    }
+                    // Setelah berurusan dengan API, baru kita matikan paksa process Tauri
+                    getCurrentWindow().destroy(); 
+                }
+            });
+            unlistenFn = unlisten;
+        } catch (e) {
+            console.warn("Bukan di environment Tauri, close handler diabaikan.");
+        }
     };
 
-    window.addEventListener("beforeunload", handleUnload);
+    setupCloseHook();
 
     return () => {
-      window.removeEventListener("beforeunload", handleUnload);
+        if (unlistenFn) unlistenFn();
     };
-  }, [auth?.user]);
+  }, [auth?.user?.id]);
 
   // Handle scroll for glassmorphism header effect on mobile
   useEffect(() => {
@@ -130,8 +145,6 @@ export default function AppLayout({ title, children }: Props) {
 
   return (
     <div className="h-screen bg-slate-50 font-sans flex text-slate-900 overflow-hidden text-sm">
-      <Toaster />
-      <GlobalToastListener />
 
       {/* Login Reject Toast */}
       <AnimatePresence>

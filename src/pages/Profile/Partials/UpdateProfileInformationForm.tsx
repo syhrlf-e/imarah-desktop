@@ -2,21 +2,24 @@ import InputError from '@/components/InputError';
 import InputLabel from '@/components/InputLabel';
 import PrimaryButton from '@/components/PrimaryButton';
 import TextInput from '@/components/TextInput';
-import { Link } from 'react-router-dom';
 import { FormEventHandler, useState } from 'react';
+import api from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function UpdateProfileInformation({
-    mustVerifyEmail,
-    status,
-    className = '',
-}: {
-    mustVerifyEmail: boolean;
-    status?: string;
+interface Props {
+    currentName: string;
+    currentEmail: string;
     className?: string;
-}) {
-    const user = { name: 'Admin', email: 'admin@example.com', email_verified_at: null };
+}
 
-    const [data, setDataForm] = useState({ name: user.name, email: user.email });
+export default function UpdateProfileInformationForm({
+    currentName,
+    currentEmail,
+    className = '',
+}: Props) {
+    const { login, token } = useAuth();
+
+    const [data, setDataForm] = useState({ name: currentName, email: currentEmail });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
     const [recentlySuccessful, setRecentlySuccessful] = useState(false);
@@ -26,30 +29,40 @@ export default function UpdateProfileInformation({
     const submit: FormEventHandler = async (e) => {
         e.preventDefault();
         setProcessing(true);
+        setErrors({});
         try {
-            // TODO: fetch API /profile/update
+            const res = await api.put('/profile', { name: data.name, email: data.email });
+            // Refresh user in context setelah update
+            const updated = res.data?.data?.user ?? res.data?.data ?? res.data;
+            if (updated && token) {
+                login(token, updated);
+            }
             setRecentlySuccessful(true);
             setTimeout(() => setRecentlySuccessful(false), 2000);
-        } catch (err) { }
-        finally { setProcessing(false); }
+        } catch (err: any) {
+            const errData = err?.response?.data;
+            if (errData?.errors) {
+                Object.entries(errData.errors).forEach(([k, msgs]) =>
+                    setErrors(prev => ({ ...prev, [k]: (msgs as string[])[0] }))
+                );
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
     return (
         <section className={className}>
             <header>
-                <h2 className="text-lg font-medium text-slate-800">
-                    Profile Information
-                </h2>
-
+                <h2 className="text-lg font-semibold text-slate-800">Informasi Profil</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                    Update your account's profile information and email address.
+                    Perbarui nama dan alamat email akun Anda.
                 </p>
             </header>
 
-            <form onSubmit={submit} className="mt-6 space-y-6">
+            <form onSubmit={submit} className="mt-6 space-y-5">
                 <div>
-                    <InputLabel htmlFor="name" value="Name" />
-
+                    <InputLabel htmlFor="name" value="Nama Lengkap" />
                     <TextInput
                         id="name"
                         className="mt-1 block w-full"
@@ -59,13 +72,11 @@ export default function UpdateProfileInformation({
                         isFocused
                         autoComplete="name"
                     />
-
                     <InputError className="mt-2" message={errors.name} />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="email" value="Email" />
-
+                    <InputLabel htmlFor="email" value="Alamat Email" />
                     <TextInput
                         id="email"
                         type="email"
@@ -75,41 +86,14 @@ export default function UpdateProfileInformation({
                         required
                         autoComplete="username"
                     />
-
                     <InputError className="mt-2" message={errors.email} />
                 </div>
 
-                {mustVerifyEmail && user.email_verified_at === null && (
-                    <div>
-                        <p className="mt-2 text-sm text-slate-800">
-                            Your email address is unverified.
-                            <button
-                                onClick={async (e) => {
-                                    e.preventDefault();
-                                    // TODO: fetch verification.send
-                                }}
-                                type="button"
-                                className="rounded-md text-sm text-slate-500 underline hover:text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                            >
-                                Click here to re-send the verification email.
-                            </button>
-                        </p>
-
-                        {status === 'verification-link-sent' && (
-                            <div className="mt-2 text-sm font-medium text-green-600">
-                                A new verification link has been sent to your
-                                email address.
-                            </div>
-                        )}
-                    </div>
-                )}
-
                 <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Save</PrimaryButton>
-
-                        <p className={`text-sm text-slate-500 transition-opacity duration-300 ${recentlySuccessful ? 'opacity-100' : 'opacity-0'}`}>
-                            Saved.
-                        </p>
+                    <PrimaryButton disabled={processing}>Simpan</PrimaryButton>
+                    <p className={`text-sm text-emerald-600 font-medium transition-opacity duration-300 ${recentlySuccessful ? 'opacity-100' : 'opacity-0'}`}>
+                        ✓ Tersimpan
+                    </p>
                 </div>
             </form>
         </section>

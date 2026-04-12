@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useMustahiqData, useMustahiqMutation } from "@/hooks/api/useZakat";
 import AppLayout from "@/layouts/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import PrimaryButton from "@/components/PrimaryButton";
@@ -76,23 +78,33 @@ const ASHNAF_STYLES: Record<string, string> = {
     ibnusabil: "bg-indigo-50 text-indigo-700 border-indigo-200/50",
 };
 
-
-
 // ── Main Component ─────────────────────────────────────────
-export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }: Props) {
-    const mustahiqs = mustahiqsProp ?? EMPTY_MUSTAHIQS;
-    const filters = filtersProp ?? EMPTY_FILTERS;
+export default function MustahiqIndex() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const auth = { user: { role: 'super_admin' } };
-    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(
-        auth.user.role,
-    );
+    const { user } = useAuth();
+    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? '');
 
-    const [search, setSearch] = useState(filters.search || "");
-    const [ashnafFilter, setAshnafFilter] = useState(filters.ashnaf || "");
-    const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">(
-        "terbaru",
-    );
+    const { data: mustahiqsRes } = useMustahiqData(searchParams.toString());
+    const { remove } = useMustahiqMutation();
+    
+    const rootData = mustahiqsRes?.data ?? {};
+    const rawMustahiqs = rootData.mustahiqs ?? mustahiqsRes ?? EMPTY_MUSTAHIQS;
+    const metaParams = rawMustahiqs.meta ?? rawMustahiqs;
+
+    const mustahiqs = {
+        ...rawMustahiqs,
+        current_page: metaParams.current_page || 1,
+        last_page: metaParams.last_page || 1,
+        total: metaParams.total || 0,
+        prev_page_url: metaParams.current_page > 1 ? "yes" : null,
+        next_page_url: metaParams.current_page < metaParams.last_page ? "yes" : null,
+    };
+    
+    const localMustahiqs = rawMustahiqs.items ?? rawMustahiqs.data ?? [];
+
+    const [search, setSearch] = useState("");
+    const [ashnafFilter, setAshnafFilter] = useState("");
+    const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">("terbaru");
     const [sortAlpha, setSortAlpha] = useState<"a-z" | "z-a">("a-z");
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingMustahiq, setEditingMustahiq] = useState<Mustahiq | null>(
@@ -103,11 +115,8 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
     const [isImportOpen, setIsImportOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [importData, _setImportData] = useState<{ file: File | null }>({ file: null });
-    const setImportData = (key: string, value: any) => _setImportData(prev => ({ ...prev, [key]: value }));
-    const postImport = (url: string, options: any) => {};
-    const importing = false;
-    const resetImport = () => {};
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importing, setImporting] = useState(false);
 
     const handlePageNav = (direction: number, url: string | null) => {
         if (!url) return;
@@ -124,25 +133,17 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
         setSearchParams(nextParams, { replace: true });
     };
 
-    // Debounce search & filter
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (
-                search !== (filters.search || "") ||
-                ashnafFilter !== (filters.ashnaf || "")
-            ) {
-                const nextParams = new URLSearchParams(searchParams);
-                if (search) nextParams.set('search', search);
-                else nextParams.delete('search');
-                
-                if (ashnafFilter) nextParams.set('ashnaf', ashnafFilter);
-                else nextParams.delete('ashnaf');
-                
-                setSearchParams(nextParams, { replace: true });
-            }
+            const nextParams = new URLSearchParams(searchParams);
+            if (search) nextParams.set('search', search);
+            else nextParams.delete('search');
+            if (ashnafFilter) nextParams.set('ashnaf', ashnafFilter);
+            else nextParams.delete('ashnaf');
+            setSearchParams(nextParams, { replace: true });
         }, 300);
         return () => clearTimeout(timer);
-    }, [search, ashnafFilter, filters.search, filters.ashnaf, searchParams, setSearchParams]);
+    }, [search, ashnafFilter, searchParams, setSearchParams]);
 
     const handleSortToggle = () => {
         const next = sortOrder === "terbaru" ? "terlama" : "terbaru";
@@ -166,7 +167,7 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
     const confirmDelete = async () => {
         if (confirmDeleteId) {
             try {
-                // TODO: DELETE API Call
+                await remove.mutateAsync(confirmDeleteId);
                 setConfirmDeleteId(null);
             } catch (err) {
                 
@@ -174,14 +175,18 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
         }
     };
     const handleImport = async () => {
-        if (!importData.file) return;
+        if (!importFile) return;
+        setImporting(true);
         try {
-            // TODO: POST Import API Call
+            const form = new FormData();
+            form.append('file', importFile);
+            await import('@/lib/api').then(m => m.default.post('/zakat/mustahiq/import', form));
             setIsImportOpen(false);
-            resetImport();
-            if (fileInputRef.current) fileInputRef.current.value = "";
-        } catch (err) {
-            
+            setImportFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch {
+        } finally {
+            setImporting(false);
         }
     };
 
@@ -348,9 +353,9 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                                     </div>
                                 ),
                             },
-                        ] satisfies ColumnDef<(typeof mustahiqs.data)[0]>[]
+                        ] satisfies ColumnDef<(typeof localMustahiqs)[0]>[]
                     }
-                    data={mustahiqs.data}
+                    data={localMustahiqs}
                     keyExtractor={(row) => row.id}
                     emptyState={
                         <EmptyState
@@ -472,7 +477,7 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                             <button
                                 onClick={() => {
                                     setIsImportOpen(false);
-                                    resetImport();
+                                    setImportFile(null);
                                 }}
                                 className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
                             >
@@ -486,10 +491,7 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                                     type="file"
                                     accept=".xlsx,.xls,.csv"
                                     onChange={(e) =>
-                                        setImportData(
-                                            "file",
-                                            e.target.files?.[0] || null,
-                                        )
+                                        setImportFile(e.target.files?.[0] || null)
                                     }
                                     className="hidden"
                                     id="import-file-mustahiq"
@@ -500,8 +502,8 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                                 >
                                     <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                                     <p className="text-sm font-medium text-slate-700">
-                                        {importData.file
-                                            ? importData.file.name
+                                        {importFile
+                                            ? importFile.name
                                             : "Klik untuk pilih file"}
                                     </p>
                                     <p className="text-xs text-slate-400 mt-1">
@@ -524,7 +526,7 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                             <button
                                 onClick={() => {
                                     setIsImportOpen(false);
-                                    resetImport();
+                                    setImportFile(null);
                                 }}
                                 className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
                             >
@@ -532,7 +534,7 @@ export default function Index({ mustahiqs: mustahiqsProp, filters: filtersProp }
                             </button>
                             <button
                                 onClick={handleImport}
-                                disabled={!importData.file || importing}
+                                disabled={!importFile || importing}
                                 className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {importing ? "Mengimport..." : "Import Data"}

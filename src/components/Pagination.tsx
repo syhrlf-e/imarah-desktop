@@ -18,6 +18,7 @@ interface PaginationProps {
     meta: Meta;
     prevPageUrl: string | null;
     nextPageUrl: string | null;
+    onPageChange?: (url: string) => void;
     cleanHtmlEntities?: (str: string) => string;
 }
 
@@ -25,6 +26,7 @@ export default function Pagination({
     meta,
     prevPageUrl,
     nextPageUrl,
+    onPageChange,
     cleanHtmlEntities = (str: string) =>
         str
             .replace(/&laquo;/g, "«")
@@ -35,6 +37,14 @@ export default function Pagination({
 }: PaginationProps) {
     const navigate = useNavigate();
     if (!meta || meta.total === 0) return null;
+
+    const handleNavigate = (url: string) => {
+        if (onPageChange) {
+            onPageChange(url);
+        } else {
+            navigate(url);
+        }
+    };
 
     return (
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -57,7 +67,7 @@ export default function Pagination({
             <div className="flex space-x-2">
                 {prevPageUrl ? (
                     <button
-                        onClick={() => navigate(prevPageUrl)}
+                        onClick={() => handleNavigate(prevPageUrl)}
                         className="p-2 border border-slate-200 rounded-lg hover:bg-white text-slate-600 bg-slate-50 transition-colors shadow-sm cursor-pointer"
                         aria-label="Halaman Sebelumnya"
                     >
@@ -82,7 +92,7 @@ export default function Pagination({
                                 <button
                                     key={idx}
                                     onClick={() =>
-                                        navigate(link.url as string)
+                                        handleNavigate(link.url as string)
                                     }
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                                         link.active
@@ -109,7 +119,7 @@ export default function Pagination({
 
                 {nextPageUrl ? (
                     <button
-                        onClick={() => navigate(nextPageUrl)}
+                        onClick={() => handleNavigate(nextPageUrl)}
                         className="p-2 border border-slate-200 rounded-lg hover:bg-white text-slate-600 bg-slate-50 transition-colors shadow-sm cursor-pointer"
                         aria-label="Halaman Berikutnya"
                     >

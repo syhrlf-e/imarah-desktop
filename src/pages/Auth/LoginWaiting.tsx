@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   token?: string;
@@ -9,12 +11,22 @@ interface Props {
 
 type Status = "waiting" | "approved" | "rejected" | "expired";
 
-export default function LoginWaiting({ token = "", expiresIn = 45 }: Props) {
+export default function LoginWaiting({ token: propsToken = "", expiresIn = 45 }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+  const token = location.state?.challengeToken || propsToken;
   const [status, setStatus] = useState<Status>("waiting");
   const [secondsLeft, setSecondsLeft] = useState(expiresIn);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Security Guard: Cegah polling tanpa token
+  useEffect(() => {
+    if (!token) {
+        navigate("/login", { replace: true });
+    }
+  }, [token, navigate]);
 
   const getColor = () => {
     if (secondsLeft > 20) return "#22C55E";
@@ -46,25 +58,43 @@ export default function LoginWaiting({ token = "", expiresIn = 45 }: Props) {
     };
   }, [status]);
 
+  // Pantau jika waktu habis, otomatis ubah status ke expired dan tendang ke login setelah jeda 3 detik
+  useEffect(() => {
+    if (secondsLeft <= 0 && status === "waiting") {
+      setStatus("expired");
+      setTimeout(() => navigate("/login"), 3000); // Otomatis kembali ke login setelah 3 detik lihat pesan
+    }
+  }, [secondsLeft, status, navigate]);
+
   // Polling status setiap 2 detik dengan AbortController
   useEffect(() => {
-    if (status !== "waiting") return;
+    if (status !== "waiting" || !token) return;
 
     let controller = new AbortController();
 
     const poll = async () => {
       try {
-        const res = await fetch(`/login/challenge/${token}/status`, {
+        const res = await api.get(`/auth/challenge/${token}/status`, {
           signal: controller.signal,
         });
-        const data = await res.json();
+        const data = res.data;
 
         if (data.status === "approved") {
           setStatus("approved");
-          // Navigasi full ke finalize agar server bisa set session cookie HP B
-          // router.visit() tidak bisa dipakai karena HP B belum punya sesi
           setTimeout(() => {
-            window.location.href = `/login/challenge/${token}/finalize`;
+            // Karena ini adalah endpoint API yang membalikkan token baru yang berhasil di-approve, 
+            // idealnya login handler menyedot token ini dan mengatur state auth. 
+            api.post(`/auth/challenge/${token}/finalize`)
+              .then((finalizeRes) => {
+                 const finalData = finalizeRes.data;
+                 if (finalData.status === 'success' && finalData.data) {
+                     login(finalData.data.token, finalData.data.user);
+                     navigate('/dashboard', { replace: true });
+                 } else {
+                     navigate('/login');
+                 }
+              })
+              .catch(() => navigate('/login'));
           }, 1500);
         } else if (data.status === "rejected") {
           setStatus("rejected");

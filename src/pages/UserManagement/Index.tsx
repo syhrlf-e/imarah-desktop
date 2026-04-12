@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppLayout from "@/layouts/AppLayout";
 import { useNavigate } from "react-router-dom";
 import { PageProps, User } from "@/types";
+import api from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import CustomSelect from "@/components/CustomSelect";
 import PrimaryButton from "@/components/PrimaryButton";
 import {
@@ -27,13 +29,26 @@ interface Props {
     flash?: Record<string, string>;
 }
 
-export default function Index({ auth: authProp, users: usersProp }: Props) {
-    const auth = authProp ?? { user: { id: '', name: 'Admin', role: 'super_admin' } as User };
-    const users = usersProp ?? [];
+import { useUsersData, useUsersMutation } from "@/hooks/api/useUsers";
+
+export default function Index() {
+    const { user: authUser } = useAuth();
+    const auth = { user: authUser ?? { id: '', name: 'Admin', role: 'super_admin' } as User };
+    
+    const { data: users = [], isLoading: loadingUsers } = useUsersData();
+    const { create, remove } = useUsersMutation();
+
     const [searchQuery, setSearchQuery] = useState("");
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-    const [data, setDataForm] = useState({
+    const [data, setDataForm] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        password_confirmation: string;
+        role: "super_admin" | "bendahara" | "petugas_zakat" | "sekretaris" | "viewer";
+        seckey: string;
+    }>({
         name: "",
         email: "",
         password: "",
@@ -63,10 +78,18 @@ export default function Index({ auth: authProp, users: usersProp }: Props) {
         e.preventDefault();
         setProcessing(true);
         try {
-            // TODO: call fetch to /api/users
+            await create.mutateAsync(data);
+            toast.success("Pengguna berhasil ditambahkan");
             closeModal();
-        } catch (error) {
-            // handle error
+        } catch (error: any) {
+            const errData = error?.response?.data;
+            if (errData?.errors) {
+                Object.entries(errData.errors).forEach(([k, msgs]) =>
+                    setError(k, (msgs as string[])[0])
+                );
+            } else {
+                toast.error(errData?.message || "Gagal menambahkan pengguna");
+            }
         } finally {
             setProcessing(false);
         }
@@ -84,7 +107,13 @@ export default function Index({ auth: authProp, users: usersProp }: Props) {
                 `Peringatan: Tarik akses dan blokir permanen akun "${user.name}"? Orang tersebut akan otomatis dikeluarkan dari aplikasi.`,
             )
         ) {
-            // TODO: call fetch DELETE
+            try {
+                await remove.mutateAsync(user.id);
+                toast.success("Akses pengguna berhasil dicabut");
+            } catch (err: any) {
+                toast.error(err?.response?.data?.message || "Gagal mencabut akses");
+                console.error('Gagal hapus user:', err);
+            }
         }
     };
 
@@ -156,7 +185,15 @@ export default function Index({ auth: authProp, users: usersProp }: Props) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100/80">
-                                    {filteredUsers.length > 0 ? (
+                                    {loadingUsers ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                                                <div className="flex justify-center items-center">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ) : filteredUsers.length > 0 ? (
                                         filteredUsers.map((user) => (
                                             <tr
                                                 key={user.id}

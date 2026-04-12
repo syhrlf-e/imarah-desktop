@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useMuzakkiData, useMuzakkiMutation } from "@/hooks/api/useZakat";
 import AppLayout from "@/layouts/AppLayout";
+import { useAuth } from "@/contexts/AuthContext";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import EmptyState from "@/components/EmptyState";
 import PrimaryButton from "@/components/PrimaryButton";
@@ -51,30 +53,39 @@ interface Props {
 
 const EMPTY_PAGE = { data: [], links: [], from: 0, to: 0, total: 0, current_page: 1, last_page: 1, prev_page_url: null, next_page_url: null };
 
-// ── Main Component ─────────────────────────────────────────
-export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
+export default function MuzakkiIndex() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const auth = { user: { role: 'super_admin' } };
-    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(
-        auth.user.role,
-    );
+    const { user } = useAuth();
+    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? '');
 
-    const [search, setSearch] = useState(filters.search || "");
-    const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">(
-        "terbaru",
-    );
+    const { data: muzakkisRes } = useMuzakkiData(searchParams.toString());
+    const { remove } = useMuzakkiMutation();
+    
+    const rootData = muzakkisRes?.data ?? {};
+    const rawMuzakkis = rootData.muzakkis ?? muzakkisRes ?? EMPTY_PAGE;
+    const metaParams = rawMuzakkis.meta ?? rawMuzakkis;
+
+    const muzakkis = {
+        ...rawMuzakkis,
+        current_page: metaParams.current_page || 1,
+        last_page: metaParams.last_page || 1,
+        total: metaParams.total || 0,
+        prev_page_url: metaParams.current_page > 1 ? "yes" : null,
+        next_page_url: metaParams.current_page < metaParams.last_page ? "yes" : null,
+    };
+    
+    const localMuzakkis = rawMuzakkis.items ?? rawMuzakkis.data ?? [];
+
+    const [search, setSearch] = useState("");
+    const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">("terbaru");
     const [sortAlpha, setSortAlpha] = useState<"a-z" | "z-a">("a-z");
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingMuzakki, setEditingMuzakki] = useState<Muzakki | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [isImportOpen, setIsImportOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const [importData, _setImportData] = useState<{ file: File | null }>({ file: null });
-    const setImportData = (key: string, value: any) => _setImportData(prev => ({ ...prev, [key]: value }));
-    const postImport = (url: string, options: any) => {};
-    const importing = false;
-    const resetImport = () => {};
+    const [importFile, setImportFile] = useState<File | null>(null);
+    const [importing, setImporting] = useState(false);
 
     const handlePageNav = (direction: number, url: string | null) => {
         if (!url) return;
@@ -93,15 +104,13 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
     // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (search !== (filters.search || "")) {
-                const nextParams = new URLSearchParams(searchParams);
-                if (search) nextParams.set('search', search);
-                else nextParams.delete('search');
-                setSearchParams(nextParams, { replace: true });
-            }
+            const nextParams = new URLSearchParams(searchParams);
+            if (search) nextParams.set('search', search);
+            else nextParams.delete('search');
+            setSearchParams(nextParams, { replace: true });
         }, 300);
         return () => clearTimeout(timer);
-    }, [search, filters.search, searchParams, setSearchParams]);
+    }, [search, searchParams, setSearchParams]);
 
     const handleSortToggle = () => {
         const next = sortOrder === "terbaru" ? "terlama" : "terbaru";
@@ -124,7 +133,7 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
     const confirmDelete = async () => {
         if (confirmDeleteId) {
             try {
-                // TODO: fetch DELETE API request
+                await remove.mutateAsync(confirmDeleteId);
                 setConfirmDeleteId(null);
             } catch (err) {
                 // Handle error
@@ -132,14 +141,18 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
         }
     };
     const handleImport = async () => {
-        if (!importData.file) return;
+        if (!importFile) return;
+        setImporting(true);
         try {
-            // TODO: fetch POST import request
+            const form = new FormData();
+            form.append('file', importFile);
+            await import('@/lib/api').then(m => m.default.post('/zakat/muzakki/import', form));
             setIsImportOpen(false);
-            resetImport();
-            if (fileInputRef.current) fileInputRef.current.value = "";
-        } catch (err) {
-            // Handle error
+            setImportFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch {
+        } finally {
+            setImporting(false);
         }
     };
 
@@ -288,9 +301,9 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                                     </div>
                                 ),
                             },
-                        ] satisfies ColumnDef<(typeof muzakkis.data)[0]>[]
+                        ] satisfies ColumnDef<(typeof localMuzakkis)[0]>[]
                     }
-                    data={muzakkis.data}
+                    data={localMuzakkis}
                     keyExtractor={(row) => row.id}
                     emptyState={
                         <EmptyState
@@ -417,7 +430,7 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                             <button
                                 onClick={() => {
                                     setIsImportOpen(false);
-                                    resetImport();
+                                    setImportFile(null);
                                 }}
                                 className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
                             >
@@ -431,10 +444,7 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                                     type="file"
                                     accept=".xlsx,.xls,.csv"
                                     onChange={(e) =>
-                                        setImportData(
-                                            "file",
-                                            e.target.files?.[0] || null,
-                                        )
+                                        setImportFile(e.target.files?.[0] || null)
                                     }
                                     className="hidden"
                                     id="import-file-muzakki"
@@ -445,8 +455,8 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                                 >
                                     <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
                                     <p className="text-sm font-medium text-slate-700">
-                                        {importData.file
-                                            ? importData.file.name
+                                        {importFile
+                                            ? importFile.name
                                             : "Klik untuk pilih file"}
                                     </p>
                                     <p className="text-xs text-slate-400 mt-1">
@@ -469,7 +479,7 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                             <button
                                 onClick={() => {
                                     setIsImportOpen(false);
-                                    resetImport();
+                                    setImportFile(null);
                                 }}
                                 className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
                             >
@@ -477,7 +487,7 @@ export default function Index({ muzakkis = EMPTY_PAGE, filters = {} }: Props) {
                             </button>
                             <button
                                 onClick={handleImport}
-                                disabled={!importData.file || importing}
+                                disabled={!importFile || importing}
                                 className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                             >
                                 {importing ? "Mengimport..." : "Import Data"}

@@ -11,8 +11,6 @@ import {
 } from "lucide-react";
 
 
-
-// ── Data menu untuk list desktop (tidak berubah) ──
 const menus = [
     {
         title: "Manajemen Muzakki",
@@ -57,9 +55,6 @@ export default function Index() {
                 </p>
             </div>
 
-
-
-            {/* ── DESKTOP ONLY — List card dengan deskripsi & Buka Menu (tidak berubah) ── */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {menus.map((menu, index) => (
                     <Link

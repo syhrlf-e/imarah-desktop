@@ -17,35 +17,40 @@ import PageHeader from "@/components/PageHeader";
 import FilterBar from "@/components/FilterBar";
 import PrimaryButton from "@/components/PrimaryButton";
 
-interface TromolBox {
-    id: string;
-    name: string;
-    qr_code: string;
-    location: string | null;
-    status: "active" | "inactive";
-    created_at: string;
-    signed_url?: string;
-}
-
-let tromolCache: TromolBox[] = [];
+import { useTromolData, TromolBox } from "@/hooks/api/useTromol";
 
 export default function TromolIndex() {
-    const [tromolBoxes, setTromolBoxes] = useState<TromolBox[]>(tromolCache);
-    const [loading, setLoading] = useState(tromolCache.length === 0);
+    const { data: tromolBoxes = [], isLoading: loading } = useTromolData();
     const [search, setSearch] = useState("");
     const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">("terbaru");
     const [sortAlpha, setSortAlpha] = useState<"a-z" | "z-a">("a-z");
 
-    useEffect(() => {
-        api.get('/tromol')
-            .then(res => {
-                const boxes = res.data?.data?.tromolBoxes ?? [];
-                tromolCache = boxes;
-                setTromolBoxes(boxes);
-            })
-            .catch(err => console.error('Gagal memuat tromol:', err))
-            .finally(() => setLoading(false));
-    }, []);
+    // Pemrosesan Filter Client-side
+    const filteredBoxes = tromolBoxes
+        .filter((box) => {
+            if (!search) return true;
+            const q = search.toLowerCase();
+            return (
+                box.name.toLowerCase().includes(q) ||
+                box.qr_code.toLowerCase().includes(q) ||
+                (box.location || "").toLowerCase().includes(q)
+            );
+        })
+        .sort((a, b) => {
+            // Sort Alphabet
+            if (sortAlpha === "a-z") {
+                const cmp = a.name.localeCompare(b.name);
+                if (cmp !== 0) return cmp;
+            } else if (sortAlpha === "z-a") {
+                const cmp = b.name.localeCompare(a.name);
+                if (cmp !== 0) return cmp;
+            }
+
+            // Sort Tanggal
+            const dateA = new Date(a.created_at).getTime();
+            const dateB = new Date(b.created_at).getTime();
+            return sortOrder === "terbaru" ? dateB - dateA : dateA - dateB;
+        });
     return (
         <AppLayout title="Pengelola Tromol">
             {/* Header Section */}
@@ -91,8 +96,14 @@ export default function TromolIndex() {
                     {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
                 </button>
             </FilterBar>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {tromolBoxes.map((box) => (
+
+            {loading ? (
+                <div className="flex justify-center items-center p-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredBoxes.map((box) => (
                     <div
                         key={box.id}
                         className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow group flex flex-col h-full relative"
@@ -181,11 +192,18 @@ export default function TromolIndex() {
                                 </Link>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
 
-            {tromolBoxes.length === 0 && (
+            {!loading && filteredBoxes.length === 0 && tromolBoxes.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
+                    Tidak ada kotak tromol yang sesuai dengan kriteria pencarian.
+                </div>
+            )}
+
+            {!loading && tromolBoxes.length === 0 && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center flex flex-col items-center justify-center">
                     <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                         <Box className="w-8 h-8 text-slate-300" />
