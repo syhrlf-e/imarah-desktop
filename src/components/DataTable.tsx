@@ -17,6 +17,7 @@ interface DataTableProps<T> {
   tableFixed?: boolean;
   className?: string;
   loading?: boolean;
+  isFetching?: boolean;
 }
 
 export default function DataTable<T>({
@@ -27,6 +28,7 @@ export default function DataTable<T>({
   tableFixed = false,
   className = "",
   loading = false,
+  isFetching = false,
 }: DataTableProps<T>) {
   const resolveClass = (cls: any, row: T): string => {
     if (!cls) return "";
@@ -35,9 +37,9 @@ export default function DataTable<T>({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col ${className}`}
+      className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative ${className}`}
     >
-      <div className="overflow-auto flex-1">
+      <div className={`overflow-auto flex-1 transition-opacity duration-200`}>
         <table
           className={`w-full text-sm text-left align-middle whitespace-nowrap ${tableFixed ? "table-fixed" : ""}`}
         >
@@ -54,7 +56,7 @@ export default function DataTable<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100/80">
-            {loading ? (
+            {loading || isFetching ? (
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
                   {columns.map((col) => (
@@ -82,12 +84,14 @@ export default function DataTable<T>({
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="py-20 text-center">
-                  {emptyState ?? (
-                    <p className="text-slate-400 font-medium">
-                      Tidak ada data ditemukan
-                    </p>
-                  )}
+                <td colSpan={columns.length} className="p-0">
+                  <div className="w-full min-h-[320px] flex flex-col items-center justify-center">
+                    {emptyState ?? (
+                      <p className="text-slate-400 font-medium">
+                        Tidak ada data ditemukan
+                      </p>
+                    )}
+                  </div>
                 </td>
               </tr>
             )}

@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import dayjs from "dayjs";
+import "dayjs/locale/id";
 import AppLayout from "@/layouts/AppLayout";
 import { PaginatedResponse, Transaction, User } from "@/types";
 import { formatRupiah, parseRupiah } from "@/utils/formatter";
 import { useNetwork } from "@/hooks/useNetwork";
-import { useKasData, useKasMutation } from "@/hooks/api/useKas";
+import { useKasSummary, useKasTransactions, useKasMutation } from "@/hooks/api/useKas";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     Plus,
@@ -74,7 +76,8 @@ export default function KasIndex({
     const categoryFilter = searchParams.get("category") ?? "";
     const sortOrder = searchParams.get("sort") ?? "terbaru";
 
-    const { data: kasData, isLoading: loadingKas } = useKasData(searchParams.toString());
+    const { data: summaryData, isLoading: loadingSummary } = useKasSummary(month, year);
+    const { data: kasData, isLoading: loadingKas, isFetching: fetchingKas } = useKasTransactions(searchParams.toString());
     const { store, verify, remove } = useKasMutation();
 
     const rawTransactions = kasData?.transactions ?? kasData ?? EMPTY_TRANSACTIONS;
@@ -91,7 +94,8 @@ export default function KasIndex({
     };
     
     const localTransactions = rawTransactions.items ?? rawTransactions.data ?? [];
-    const localSummary = kasData?.summary ?? EMPTY_SUMMARY;
+    // Ambil dari useKasSummary (endpoint /kas/summary) — bukan dari kasData yang tidak mengandung summary
+    const localSummary = summaryData?.summary ?? summaryData ?? EMPTY_SUMMARY;
 
     const [activeTab, setActiveTab] = useState<"tampilan" | "catat">("tampilan");
     const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
@@ -171,6 +175,28 @@ export default function KasIndex({
         auth.user.role === "bendahara" || auth.user.role === "super_admin";
     const isSuperAdmin = auth.user.role === "super_admin";
 
+    const [hijriDate, setHijriDate] = useState<string>("");
+
+    const getHijriDateString = () => {
+        try {
+            const date = new Date();
+            const format = new Intl.DateTimeFormat("id-TN-u-ca-islamic", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }).format(date);
+            return format.replace(/ H$/i, "") + " H";
+        } catch (e) {
+            return "Tanggal Hijriyah";
+        }
+    };
+
+    useEffect(() => {
+        setHijriDate(getHijriDateString());
+    }, []);
+
+    const masehiDateStr = dayjs().format("dddd, D MMMM YYYY");
+
     const handleDelete = async (id: string) => {
         if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
             try {
@@ -198,6 +224,21 @@ export default function KasIndex({
 
     return (
         <AppLayout title="Pengelola Kas">
+            {/* Header Section */}
+            <PageHeader
+                title="Kas Masjid"
+                description="Kelola dan pantau seluruh transaksi pemasukan dan pengeluaran keuangan masjid."
+                className="shrink-0"
+            >
+                <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">
+                        {masehiDateStr}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        {hijriDate}
+                    </p>
+                </div>
+            </PageHeader>
 
             {/* ── DESKTOP ONLY: Summary Cards + FilterBar + DataTable ── */}
             <div className="flex flex-col flex-1 min-h-[500px]">
@@ -207,22 +248,9 @@ export default function KasIndex({
                     pengeluaranBulanIni={localSummary.pengeluaran_bulan_ini}
                     surplusDefisit={localSummary.saldo_akhir_bulan}
                     monthLabel={getMonthName(month)}
+                    loading={loadingSummary}
                     className="mb-8 md:px-6 shrink-0"
                 />
-
-                {/* Separator + Catat Transaksi button — Bendahara/Admin only */}
-                <div className="flex items-center gap-4 mb-6 md:mx-6">
-                    <div className="flex-1 border-t border-slate-200" />
-                    {isBendaharaOrAdmin && (
-                        <button
-                            onClick={openAddModal}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-md shadow-emerald-500/25 transition-all shrink-0"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Catat Transaksi
-                        </button>
-                    )}
-                </div>
 
                 {/* Desktop Toolbar — search, filter, sort */}
                 <FilterBar
@@ -330,33 +358,41 @@ export default function KasIndex({
                             )}
                         </AnimatePresence>
                     </div>
-                    {/* Urutkan */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            const newSort =
-                                sortOrder === "terbaru" ? "terlama" : "terbaru";
-                            applyFilters({ sort: newSort, page: 1 });
-                        }}
-                        className="inline-flex items-center justify-center w-auto px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0"
-                    >
-                        <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-500" />
-                        {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
-                    </button>
-                    {/* Desktop: Filter & Download buttons */}
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white hover:bg-slate-50 transition-colors">
-                        <SlidersHorizontal size={15} />
-                        Filter
-                    </button>
-                    <button className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 bg-white hover:bg-slate-50 transition-colors">
-                        <Download size={15} />
-                        Download
-                    </button>
+                    {/* Urutkan & Catat Transaksi */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const newSort =
+                                    sortOrder === "terbaru" ? "terlama" : "terbaru";
+                                applyFilters({ sort: newSort, page: 1 });
+                            }}
+                            className="inline-flex items-center justify-center w-auto px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0"
+                        >
+                            <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-500" />
+                            {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
+                        </button>
+                        
+                        {isBendaharaOrAdmin && (
+                            <>
+                                <div className="h-6 w-px bg-slate-300 mx-1"></div>
+                                <button
+                                    onClick={openAddModal}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Catat Transaksi
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </FilterBar>
 
                 <DataTable
                     className="flex flex-1 min-h-[400px]"
                     tableFixed
+                    loading={loadingKas}
+                    isFetching={fetchingKas}
                     columns={
                         [
                             {
@@ -494,16 +530,15 @@ export default function KasIndex({
                     }
                     data={localTransactions}
                     keyExtractor={(item) => item.id}
-                    loading={loadingKas}
                     emptyState={
                         <div className="flex flex-col items-center justify-center text-slate-400 py-2">
                             <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
                                 <Search className="w-8 h-8 text-slate-300" />
                             </div>
-                            <p className="font-medium text-slate-600">
+                            <p className="font-bold text-slate-800">
                                 Belum ada data transaksi
                             </p>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="text-sm text-slate-500 mt-1">
                                 Transaksi yang ditambahkan akan muncul di sini.
                             </p>
                         </div>

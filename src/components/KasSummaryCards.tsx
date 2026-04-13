@@ -8,6 +8,7 @@ interface KasSummaryCardsProps {
     surplusDefisit?: number; // optional: jika diisi maka tampilkan card ke-4
     monthLabel?: string; // optional: label badge bulan (default: bulan ini)
     loading?: boolean; // optional: tampilkan skeleton state
+    isFetching?: boolean; // optional: transisi native saat update data
     className?: string;
     formatter?: (value: number) => string;
 }
@@ -34,6 +35,7 @@ export default function KasSummaryCards({
     surplusDefisit,
     monthLabel,
     loading = false,
+    isFetching = false,
     className = "",
     formatter = formatDefault,
 }: KasSummaryCardsProps) {
@@ -55,6 +57,9 @@ export default function KasSummaryCards({
                         <div className="p-2 md:p-2.5 bg-emerald-50 rounded-xl">
                             <Wallet className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                         </div>
+                        {isFetching && (
+                            <div className="animate-spin h-3 w-3 border-2 border-emerald-600 border-t-transparent rounded-full" />
+                        )}
                     </div>
                     <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
                         Total Saldo Kas
@@ -62,7 +67,7 @@ export default function KasSummaryCards({
                     {loading ? (
                         <Skeleton className="h-8 w-32 mt-auto" />
                     ) : (
-                        <h4 className="text-xl md:text-2xl font-bold text-slate-900 mt-auto">
+                        <h4 className={`text-xl md:text-2xl font-bold text-slate-900 mt-auto transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
                             {formatter(totalSaldo)}
                         </h4>
                     )}
@@ -74,10 +79,13 @@ export default function KasSummaryCards({
                         <div className="p-2 md:p-2.5 bg-emerald-50 rounded-xl">
                             <ArrowUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-600" />
                         </div>
-                        {monthLabel && (
+                        {monthLabel && !isFetching && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] md:text-xs font-semibold bg-slate-100 text-slate-500">
                                 {monthLabel}
                             </span>
+                        )}
+                        {isFetching && (
+                            <div className="animate-spin h-3 w-3 border-2 border-emerald-600 border-t-transparent rounded-full" />
                         )}
                     </div>
                     <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
@@ -86,7 +94,7 @@ export default function KasSummaryCards({
                     {loading ? (
                         <Skeleton className="h-6 w-24 mt-auto" />
                     ) : (
-                        <h4 className="text-base md:text-2xl font-semibold md:font-bold text-emerald-600 mt-auto">
+                        <h4 className={`text-base md:text-2xl font-semibold md:font-bold text-emerald-600 mt-auto transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
                             {formatter(pemasukanBulanIni)}
                         </h4>
                     )}
@@ -98,10 +106,13 @@ export default function KasSummaryCards({
                         <div className="p-2 md:p-2.5 bg-red-50 rounded-xl">
                             <ArrowDown className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
                         </div>
-                        {monthLabel && (
+                        {monthLabel && !isFetching && (
                             <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] md:text-xs font-semibold bg-slate-100 text-slate-500">
                                 {monthLabel}
                             </span>
+                        )}
+                        {isFetching && (
+                            <div className="animate-spin h-3 w-3 border-2 border-red-500 border-t-transparent rounded-full" />
                         )}
                     </div>
                     <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
@@ -110,7 +121,7 @@ export default function KasSummaryCards({
                     {loading ? (
                         <Skeleton className="h-6 w-24 mt-auto" />
                     ) : (
-                        <h4 className="text-base md:text-2xl font-semibold md:font-bold text-red-500 mt-auto">
+                        <h4 className={`text-base md:text-2xl font-semibold md:font-bold text-red-500 mt-auto transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
                             {formatter(pengeluaranBulanIni)}
                         </h4>
                     )}
@@ -127,10 +138,13 @@ export default function KasSummaryCards({
                                     className={`w-4 h-4 md:w-5 md:h-5 ${isPositive ? "text-blue-600" : "text-orange-600"}`}
                                 />
                             </div>
-                            {monthLabel && (
+                            {monthLabel && !isFetching && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-md text-[10px] md:text-xs font-semibold bg-slate-100 text-slate-500">
                                     {monthLabel}
                                 </span>
+                            )}
+                            {isFetching && (
+                                <div className={`animate-spin h-3 w-3 border-2 border-t-transparent rounded-full ${isPositive ? 'border-blue-600' : 'border-orange-600'}`} />
                             )}
                         </div>
                         <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">
@@ -140,7 +154,7 @@ export default function KasSummaryCards({
                             <Skeleton className="h-6 w-24 mt-auto" />
                         ) : (
                             <h4
-                                className={`text-base md:text-2xl font-semibold md:font-bold mt-auto ${isPositive ? "text-blue-600" : "text-orange-600"}`}
+                                className={`text-base md:text-2xl font-semibold md:font-bold mt-auto transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'} ${isPositive ? "text-blue-600" : "text-orange-600"}`}
                             >
                                 {surplusDefisit! > 0 ? "+" : ""}
                                 {formatter(surplusDefisit!)}

@@ -88,10 +88,23 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
         setErrors({});
 
         try {
+            const formatToUTC = (dateStr: string) => {
+                if (!dateStr) return null;
+                return new Date(dateStr).toISOString().replace("T", " ").substring(0, 19);
+            };
+
+            const payload = {
+                ...data,
+                start_time: formatToUTC(data.start_time) || data.start_time,
+                end_time: formatToUTC(data.end_time),
+                location: data.location ? data.location : null,
+                description: data.description ? data.description : null,
+            };
+
             if (editingAgenda) {
-                await update.mutateAsync({ id: editingAgenda.id, data });
+                await update.mutateAsync({ id: editingAgenda.id, data: payload });
             } else {
-                await store.mutateAsync(data);
+                await store.mutateAsync(payload);
             }
             onClose();
         } catch (error: any) {
@@ -222,7 +235,7 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
                         formId="agenda-form"
                         submitText="Simpan Agenda"
                         layout="full-width"
-                        className="!mt-0"
+                        className="mt-0!"
                     />
                 </div>
             </div>

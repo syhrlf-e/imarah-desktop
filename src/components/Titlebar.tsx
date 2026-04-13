@@ -2,16 +2,14 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Minus, Square, X } from "lucide-react";
 
 export default function Titlebar() {
-  const appWindow = getCurrentWindow();
-
   const minimize = () => {
-    appWindow.minimize().catch(console.error);
+    getCurrentWindow().minimize().catch(console.error);
   };
   const toggleMaximize = () => {
-    appWindow.toggleMaximize().catch(console.error);
+    getCurrentWindow().toggleMaximize().catch(console.error);
   };
   const close = () => {
-    appWindow.close().catch((e) => alert("Error menutup window: " + e));
+    getCurrentWindow().close().catch((e) => alert("Error menutup window: " + e));
   };
 
   return (

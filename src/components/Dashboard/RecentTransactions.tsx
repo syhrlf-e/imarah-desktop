@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { ArrowUp, ArrowDown, Wallet } from "lucide-react";
 import dayjs from "dayjs";
 import { formatRupiah } from "@/utils/formatter";
 import WidgetContainer from "@/components/UI/WidgetContainer";
@@ -45,7 +45,7 @@ export default function RecentTransactions({
           </div>
         ) : transactions.length > 0 ? (
           <div className="flex flex-col gap-2">
-            {transactions.slice(0, 4).map((trx) => (
+            {transactions.slice(0, 5).map((trx) => (
               <div
                 key={trx.id}
                 className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors group border border-transparent hover:border-slate-100"
@@ -55,9 +55,9 @@ export default function RecentTransactions({
                     <p className="font-semibold text-slate-800 text-xs truncate flex items-center">
                       {trx.category.replace(/_/g, " ").toUpperCase()}
                       {trx.type === "pemasukan" ? (
-                        <TrendingUp className="w-3.5 h-3.5 inline-block ml-1.5 text-emerald-500" />
+                        <ArrowUp className="w-3.5 h-3.5 inline-block ml-1.5 text-emerald-500" />
                       ) : (
-                        <TrendingDown className="w-3.5 h-3.5 inline-block ml-1.5 text-red-500" />
+                        <ArrowDown className="w-3.5 h-3.5 inline-block ml-1.5 text-red-500" />
                       )}
                     </p>
                     <p className="text-[10px] text-slate-500 mt-0.5 truncate">
@@ -67,7 +67,7 @@ export default function RecentTransactions({
                 </div>
                 <div className="text-right shrink-0 pl-2">
                   <p
-                    className={`font-semibold text-xs font-mono tracking-tight ${
+                    className={`font-semibold text-sm ${
                       trx.type === "pemasukan"
                         ? "text-emerald-600"
                         : "text-slate-800"
@@ -79,10 +79,10 @@ export default function RecentTransactions({
                 </div>
               </div>
             ))}
-            {totalCount > 4 && (
+            {totalCount > 5 && (
               <div className="text-center py-2 mt-auto border-t border-slate-100 shrink-0">
                 <p className="text-[11px] text-slate-500 font-medium">
-                  ... dan {totalCount - 4} transaksi lainnya
+                  ... dan {totalCount - 5} transaksi lainnya
                 </p>
               </div>
             )}

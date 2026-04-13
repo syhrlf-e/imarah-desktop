@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { inventarisService } from "@/services/inventarisService";
 import { toast } from "sonner";
 
@@ -6,6 +6,7 @@ export const useInventarisData = (params: string) => {
   return useQuery({
     queryKey: ["inventaris", params],
     queryFn: () => inventarisService.getAll(params),
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
   });
 };

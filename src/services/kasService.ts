@@ -9,6 +9,11 @@ export interface KasSummary {
 }
 
 export const kasService = {
+  getSummary: async (month: string | number, year: string | number) => {
+    const res = await api.get(`/kas/summary?month=${month}&year=${year}`);
+    return res.data?.data;
+  },
+
   getAll: async (params: string) => {
     const res = await api.get(`/kas?${params}`);
     return res.data?.data;

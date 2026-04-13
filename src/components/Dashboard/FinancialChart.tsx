@@ -71,14 +71,13 @@ export default function FinancialChart({ data, loading }: FinancialChartProps) {
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-0">
+            <div className="flex-1 w-full min-h-[250px]">
                 {loading ? (
                     <div className="w-full h-full bg-slate-100/50 animate-pulse rounded-xl"></div>
                 ) : (
                     <ResponsiveContainer
                         width="100%"
                         height="100%"
-                        minHeight={250}
                     >
                         <AreaChart
                             data={data}

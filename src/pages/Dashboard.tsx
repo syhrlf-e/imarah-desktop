@@ -16,6 +16,7 @@ import KasSummaryCards from "@/components/KasSummaryCards";
 import { useAuth } from "@/contexts/AuthContext";
 import UpcomingAgendas from "@/components/Dashboard/UpcomingAgendas";
 import RecentTransactions from "@/components/Dashboard/RecentTransactions";
+import { useQuery } from "@tanstack/react-query";
 
 const FinancialChart = lazy(
     () => import("@/components/Dashboard/FinancialChart"),
@@ -23,15 +24,12 @@ const FinancialChart = lazy(
 
 dayjs.locale("id");
 
-// ── Module-level cache: data tetap ada saat navigasi antar halaman ──
 const EMPTY_DASHBOARD = {
     totalSaldo: 0, totalZakat: 0, totalTransaksiBulanIni: 0,
     pemasukanBulanIni: 0, pengeluaranBulanIni: 0,
     recentTransactions: [], upcomingAgendas: [], chartData: [],
     totalKasTransactions: 0, zakatStats: null, inventarisStats: null, tromolStats: null,
 };
-let dashboardCache: Record<string, any> = { ...EMPTY_DASHBOARD };
-
 
 interface Transaction {
     id: number;
@@ -48,6 +46,7 @@ interface Agenda {
     type: string;
     start_time: string;
     location: string;
+    description?: string;
 }
 
 interface ChartData {
@@ -115,44 +114,32 @@ export default function Dashboard({
             role: authUser?.role ?? 'super_admin',
         },
     };
-    // Gunakan cache sebagai initial state — tampil instan saat navigasi kembali
-    const [dashboardData, setDashboardData] = useState<Record<string, any>>(dashboardCache);
-    const [loading, setLoading] = useState(dashboardCache === EMPTY_DASHBOARD);
 
-    useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                const response = await api.get('/dashboard');
-                // Backend mereturn data di dalam response.data.data
-                if (response.data && response.data.data) {
-                    const resData = response.data.data;
-                    const mapped = {
-                        totalSaldo: resData.total_saldo ?? 0,
-                        totalZakat: resData.total_zakat ?? 0,
-                        totalTransaksiBulanIni: resData.total_transaksi_bulan_ini ?? 0,
-                        pemasukanBulanIni: resData.pemasukan_bulan_ini ?? 0,
-                        pengeluaranBulanIni: resData.pengeluaran_bulan_ini ?? 0,
-                        recentTransactions: resData.recent_transactions ?? [],
-                        upcomingAgendas: resData.upcoming_agendas ?? [],
-                        chartData: resData.chart_data ?? [],
-                        totalKasTransactions: resData.stats?.kas_count ?? 0,
-                        zakatStats: resData.stats?.zakat ?? null,
-                        inventarisStats: resData.stats?.inventaris ?? null,
-                        tromolStats: resData.stats?.tromol ?? null,
-                    };
-                    // Update cache global dan state
-                    dashboardCache = mapped;
-                    setDashboardData(mapped);
-                }
-            } catch (error) {
-                console.error("Gagal mengambil data dashboard:", error);
-            } finally {
-                setLoading(false);
+    const { data: dashboardData = EMPTY_DASHBOARD, isLoading: loading } = useQuery({
+        queryKey: ["dashboard"],
+        queryFn: async () => {
+            const response = await api.get('/dashboard');
+            if (response.data && response.data.data) {
+                const resData = response.data.data;
+                return {
+                    totalSaldo: resData.total_saldo ?? 0,
+                    totalZakat: resData.total_zakat ?? 0,
+                    totalTransaksiBulanIni: resData.total_transaksi_bulan_ini ?? 0,
+                    pemasukanBulanIni: resData.pemasukan_bulan_ini ?? 0,
+                    pengeluaranBulanIni: resData.pengeluaran_bulan_ini ?? 0,
+                    recentTransactions: resData.recent_transactions?.items ?? resData.recent_transactions ?? [],
+                    upcomingAgendas: resData.upcoming_agendas?.items ?? resData.upcoming_agendas ?? [],
+                    chartData: resData.chart_data ?? [],
+                    totalKasTransactions: resData.stats?.kas_count ?? 0,
+                    zakatStats: resData.stats?.zakat ?? null,
+                    inventarisStats: resData.stats?.inventaris ?? null,
+                    tromolStats: resData.stats?.tromol ?? null,
+                };
             }
-        };
-
-        fetchDashboardData();
-    }, []);
+            return EMPTY_DASHBOARD;
+        },
+        staleTime: 1000 * 60 * 5, // 5 menit
+    });
 
     // Destructure dari cache
     const {
@@ -224,76 +211,100 @@ export default function Dashboard({
                     {/* Left Section: Stats & Chart */}
                     <div className="lg:col-span-3 flex flex-col gap-3 md:gap-6 lg:min-h-0">
                         {/* Summary Zakat (Petugas Zakat) */}
-                        {auth.user.role === "petugas_zakat" && zakatStats && (
+                        {auth.user.role === "petugas_zakat" && (loading || zakatStats) && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div className="bg-white rounded-2xl p-5 border border-slate-200">
                                     <p className="text-slate-500 text-sm mb-1">
                                         Total Muzakki
                                     </p>
-                                    <p className="text-2xl font-bold text-slate-800">
-                                        {zakatStats.total_muzakki}{" "}
-                                        <span className="text-sm font-normal text-slate-500">
-                                            Orang
-                                        </span>
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-24 bg-slate-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-slate-800">
+                                            {zakatStats?.total_muzakki}{" "}
+                                            <span className="text-sm font-normal text-slate-500">
+                                                Orang
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="bg-white rounded-2xl p-5 border border-slate-200">
                                     <p className="text-slate-500 text-sm mb-1">
                                         Total Mustahiq
                                     </p>
-                                    <p className="text-2xl font-bold text-slate-800">
-                                        {zakatStats.total_mustahiq}{" "}
-                                        <span className="text-sm font-normal text-slate-500">
-                                            Orang
-                                        </span>
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-24 bg-slate-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-slate-800">
+                                            {zakatStats?.total_mustahiq}{" "}
+                                            <span className="text-sm font-normal text-slate-500">
+                                                Orang
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="bg-white rounded-2xl p-5 border border-slate-200 bg-emerald-50">
                                     <p className="text-emerald-700 text-sm mb-1">
                                         Ringkasan Zakat Terkumpul
                                     </p>
-                                    <p className="text-2xl font-bold text-emerald-800">
-                                        {formatRupiah(totalZakat)}
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-32 bg-emerald-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-emerald-800">
+                                            {formatRupiah(totalZakat)}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
 
                         {/* Summary Inventaris (Sekretaris) */}
-                        {auth.user.role === "sekretaris" && inventarisStats && (
+                        {auth.user.role === "sekretaris" && (loading || inventarisStats) && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div className="bg-white rounded-2xl p-5 border border-slate-200">
                                     <p className="text-slate-500 text-sm mb-1">
                                         Total Item Inventaris
                                     </p>
-                                    <p className="text-2xl font-bold text-slate-800">
-                                        {inventarisStats.total_items}{" "}
-                                        <span className="text-sm font-normal text-slate-500">
-                                            Unit
-                                        </span>
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-24 bg-slate-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-slate-800">
+                                            {inventarisStats?.total_items}{" "}
+                                            <span className="text-sm font-normal text-slate-500">
+                                                Unit
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-100">
                                     <p className="text-emerald-700 text-sm mb-1">
                                         Kondisi Baik
                                     </p>
-                                    <p className="text-2xl font-bold text-emerald-800">
-                                        {inventarisStats.good_items}{" "}
-                                        <span className="text-sm font-normal text-emerald-700">
-                                            Unit
-                                        </span>
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-24 bg-emerald-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-emerald-800">
+                                            {inventarisStats?.good_items}{" "}
+                                            <span className="text-sm font-normal text-emerald-700">
+                                                Unit
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="bg-red-50 rounded-2xl p-5 border border-red-100">
                                     <p className="text-red-700 text-sm mb-1">
                                         Kondisi Rusak
                                     </p>
-                                    <p className="text-2xl font-bold text-red-800">
-                                        {inventarisStats.broken_items}{" "}
-                                        <span className="text-sm font-normal text-red-700">
-                                            Unit
-                                        </span>
-                                    </p>
+                                    {loading ? (
+                                        <div className="h-8 w-24 bg-red-100 rounded animate-pulse mt-1"></div>
+                                    ) : (
+                                        <p className="text-2xl font-bold text-red-800">
+                                            {inventarisStats?.broken_items}{" "}
+                                            <span className="text-sm font-normal text-red-700">
+                                                Unit
+                                            </span>
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -306,6 +317,7 @@ export default function Dashboard({
                                 totalSaldo={totalSaldo}
                                 pemasukanBulanIni={pemasukanBulanIni}
                                 pengeluaranBulanIni={pengeluaranBulanIni}
+                                loading={loading}
                                 className="shrink-0"
                             />
                         )}
@@ -331,11 +343,11 @@ export default function Dashboard({
 
                     {/* Right Section: Agenda & Recent Transactions */}
                     <div className="lg:col-span-1 flex flex-col gap-3 md:gap-6 lg:min-h-0">
-                        {/* Upcoming Agendas Widget (Hanya Super Admin) */}
-                        {auth.user.role === "super_admin" && (
-                            <UpcomingAgendas
-                                agendas={upcomingAgendas}
-                            />
+                        {/* Upcoming Agendas Widget */}
+                        {["super_admin", "bendahara", "petugas_zakat", "sekretaris"].includes(
+                            auth.user.role,
+                        ) && (
+                            <UpcomingAgendas />
                         )}
 
                         {/* Recent Transactions Widget (Super Admin & Bendahara) */}
@@ -345,6 +357,7 @@ export default function Dashboard({
                             <RecentTransactions
                                 transactions={recentTransactions}
                                 totalCount={totalKasTransactions}
+                                loading={loading}
                             />
                         )}
                     </div>

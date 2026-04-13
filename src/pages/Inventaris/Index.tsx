@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import AppLayout from "@/layouts/AppLayout";
 import { useSearchParams } from "react-router-dom";
+import dayjs from "dayjs";
+import "dayjs/locale/id";
 import { useInventarisData, useInventarisMutation } from "@/hooks/api/useInventaris";
 import {
     Plus,
@@ -11,6 +13,7 @@ import {
     ChevronDown,
     ChevronLeft,
     ChevronRight,
+    Search,
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
@@ -43,7 +46,7 @@ export default function InventarisIndex() {
     const conditionFilter = searchParams.get("condition") ?? "semua";
     const page = searchParams.get("page") ?? "1";
 
-    const { data: inventarisData, isLoading } = useInventarisData(searchParams.toString());
+    const { data: inventarisData, isLoading, isFetching } = useInventarisData(searchParams.toString());
     const { remove } = useInventarisMutation();
 
     const data = inventarisData || EMPTY_ITEMS;
@@ -52,6 +55,7 @@ export default function InventarisIndex() {
 
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [localSearch, setLocalSearch] = useState(search);
     
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -83,11 +87,11 @@ export default function InventarisIndex() {
         setIsAddOpen(true);
     };
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
+    const handleSearchChange = (val: string) => {
+        setLocalSearch(val);
         if (searchTimer.current) clearTimeout(searchTimer.current);
         searchTimer.current = setTimeout(() => {
-            applyFilters({ search: value, page: "1" });
+            applyFilters({ search: val, page: "1" });
         }, 500);
     };
 
@@ -121,6 +125,28 @@ export default function InventarisIndex() {
         rusak_berat: "Rusak Berat",
     };
 
+    const [hijriDate, setHijriDate] = useState<string>("");
+
+    const getHijriDateString = () => {
+        try {
+            const date = new Date();
+            const format = new Intl.DateTimeFormat("id-TN-u-ca-islamic", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }).format(date);
+            return format.replace(/ H$/i, "") + " H";
+        } catch (e) {
+            return "Tanggal Hijriyah";
+        }
+    };
+
+    useEffect(() => {
+        setHijriDate(getHijriDateString());
+    }, []);
+
+    const masehiDateStr = dayjs().format("dddd, D MMMM YYYY");
+
     return (
         <AppLayout title="Pengelola Inventaris">
             {/* Header Section */}
@@ -129,25 +155,20 @@ export default function InventarisIndex() {
                 description="Daftar barang, fasilitas, dan aset yang dimiliki oleh masjid."
                 className="shrink-0"
             >
-                {(items.length > 0 || search || conditionFilter !== "semua") && (
-                    <PrimaryButton
-                        onClick={openAddModal}
-                        className="!py-2.5 font-medium cursor-pointer"
-                    >
-                        <Plus className="w-5 h-5 mr-1" />
-                        Catat Inventaris
-                    </PrimaryButton>
-                )}
+                <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">
+                        {masehiDateStr}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                        {hijriDate}
+                    </p>
+                </div>
             </PageHeader>
 
             <FilterBar
                 searchPlaceholder="Cari nama barang..."
-                searchValue={search}
-                onSearchChange={(val) =>
-                    handleSearchChange({
-                        target: { value: val },
-                    } as React.ChangeEvent<HTMLInputElement>)
-                }
+                searchValue={localSearch}
+                onSearchChange={handleSearchChange}
                 addon={
                     <div className="relative shrink-0 z-50">
                         {isFilterOpen && (
@@ -206,12 +227,24 @@ export default function InventarisIndex() {
                         </AnimatePresence>
                     </div>
                 }
-            />
+            >
+                {/* Catat Inventaris */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <button
+                        onClick={openAddModal}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Catat Inventaris
+                    </button>
+                </div>
+            </FilterBar>
 
             {/* Data Table */}
             <DataTable
                 className="flex-1 min-h-[400px]"
                 loading={isLoading}
+                isFetching={isFetching}
                 tableFixed
                 columns={
                     [
@@ -289,18 +322,24 @@ export default function InventarisIndex() {
                 data={items}
                 keyExtractor={(row) => row.id}
                 emptyState={
-                    <div className="flex flex-col items-center justify-center text-slate-400 py-12">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                            <Info className="w-8 h-8 text-slate-300" />
+                    <div className="flex flex-col items-center justify-center text-slate-400 py-2">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                            {localSearch || conditionFilter !== "semua" ? (
+                                <Search className="w-8 h-8 text-slate-300" />
+                            ) : (
+                                <Info className="w-8 h-8 text-slate-300" />
+                            )}
                         </div>
-                        <h3 className="text-lg font-bold text-slate-800 mb-1">Belum ada data barang</h3>
-                        <p className="text-sm text-slate-500 max-w-sm mb-6 text-center">
-                            Daftar fasilitas dan aset masjid masih kosong. Catat inventaris baru untuk mulai memonitor aset.
+                        <p className="font-bold text-slate-800">
+                            {localSearch || conditionFilter !== "semua" 
+                                ? "Barang tidak ditemukan" 
+                                : "Belum ada data barang"}
                         </p>
-                        <PrimaryButton onClick={openAddModal} className="inline-flex items-center justify-center !py-2.5 font-medium cursor-pointer">
-                            <Plus className="w-4 h-4 mr-2" />
-                            Catat Inventaris
-                        </PrimaryButton>
+                        <p className="text-sm text-slate-500 mt-1">
+                            {localSearch || conditionFilter !== "semua" 
+                                ? "Kami tidak menemukan barang yang sesuai pencarian." 
+                                : "Aset yang ditambahkan akan muncul di sini."}
+                        </p>
                     </div>
                 }
             />

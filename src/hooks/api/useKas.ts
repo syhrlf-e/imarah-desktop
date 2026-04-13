@@ -2,12 +2,20 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { kasService } from "@/services/kasService";
 import { toast } from "sonner";
 
-export const useKasData = (params: string) => {
+export const useKasSummary = (month: string | number, year: string | number) => {
   return useQuery({
-    queryKey: ["kas", params],
+    queryKey: ["kas", "summary", month, year],
+    queryFn: () => kasService.getSummary(month, year),
+    staleTime: 1000 * 60 * 5, // Data dianggap segar selama 5 menit
+  });
+};
+
+export const useKasTransactions = (params: string) => {
+  return useQuery({
+    queryKey: ["kas", "transactions", params],
     queryFn: () => kasService.getAll(params),
-    staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5, // Data dianggap segar selama 5 menit
   });
 };
 
@@ -16,7 +24,13 @@ export const useKasMutation = () => {
 
   // Fungsi helper untuk refresh data setelah mutasi berhasil
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["kas"] });
+    // Invalidate active queries to refetch them immediately
+    await queryClient.invalidateQueries({ queryKey: ["kas"], type: "active" });
+    // Remove inactive queries (like other cached filters) so they don't flash old data
+    await queryClient.removeQueries({ queryKey: ["kas"], type: "inactive" });
+    
+    // Hapus cache dashboard agar jika kembali ke dashboard, datanya benar-benar fresh dan tidak berkedip
+    await queryClient.removeQueries({ queryKey: ["dashboard"] });
   };
 
   const store = useMutation({
