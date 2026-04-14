@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
+import { useDate } from "@/hooks/useDate";
 import { motion, AnimatePresence } from "framer-motion";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 
@@ -60,7 +61,7 @@ export default function MuzakkiIndex() {
 
     const { data: muzakkisRes } = useMuzakkiData(searchParams.toString());
     const { remove } = useMuzakkiMutation();
-    
+
     const rootData = muzakkisRes?.data ?? {};
     const rawMuzakkis = rootData.muzakkis ?? muzakkisRes ?? EMPTY_PAGE;
     const metaParams = rawMuzakkis.meta ?? rawMuzakkis;
@@ -73,8 +74,10 @@ export default function MuzakkiIndex() {
         prev_page_url: metaParams.current_page > 1 ? "yes" : null,
         next_page_url: metaParams.current_page < metaParams.last_page ? "yes" : null,
     };
-    
+
     const localMuzakkis = rawMuzakkis.items ?? rawMuzakkis.data ?? [];
+
+    const { masehiDateStr, hijriDate } = useDate();
 
     const [search, setSearch] = useState("");
     const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">("terbaru");
@@ -91,13 +94,13 @@ export default function MuzakkiIndex() {
         if (!url) return;
         const newUrl = new URL(url);
         const page = newUrl.searchParams.get("page");
-        
+
         const nextParams = new URLSearchParams(searchParams);
         if (search) nextParams.set('search', search);
         if (sortAlpha) nextParams.set('sort', sortAlpha);
         if (sortOrder) nextParams.set('order', sortOrder);
         if (page) nextParams.set('page', page);
-        
+
         setSearchParams(nextParams, { replace: true });
     };
 
@@ -157,7 +160,7 @@ export default function MuzakkiIndex() {
 
     return (
         <AppLayout title="Pengelola Zakat">
-            
+
 
 
 
@@ -168,7 +171,12 @@ export default function MuzakkiIndex() {
                 <PageHeader
                     title="Data Muzakki"
                     description="Kelola direktori donatur zakat, infaq, dan shodaqoh."
-                />
+                >
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">{masehiDateStr}</p>
+                        <p className="text-xs text-slate-500 mt-1">{hijriDate}</p>
+                    </div>
+                </PageHeader>
 
                 <FilterBar
                     searchPlaceholder="Cari nama jamaah atau nomor telepon..."
@@ -219,7 +227,7 @@ export default function MuzakkiIndex() {
                                 </button>
                                 <PrimaryButton
                                     onClick={handleCreate}
-                                    className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                                    className="py-2.5! font-semibold shadow-sm active:scale-95 transition-all"
                                 >
                                     <Plus className="w-5 h-5 mr-1" />
                                     Daftarkan Muzakki
@@ -230,7 +238,7 @@ export default function MuzakkiIndex() {
                 </FilterBar>
 
                 <DataTable
-                    className="flex-1 min-h-[400px]"
+                    className="flex-1 min-h-100"
                     tableFixed
                     columns={
                         [

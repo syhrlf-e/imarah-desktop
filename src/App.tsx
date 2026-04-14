@@ -24,7 +24,7 @@ import UserManagementIndex from "@/pages/UserManagement/Index";
 import ProfileEdit from "@/pages/Profile/Edit";
 
 // ── Zakat ─────────────────────────────────────────────────────
-import ZakatIndex from "@/pages/Zakat/Index";
+import KalkulatorIndex from "@/pages/Zakat/Kalkulator/Index";
 import MuzakkiIndex from "@/pages/Zakat/Muzakki/Index";
 import MustahiqIndex from "@/pages/Zakat/Mustahiq/Index";
 import PenerimaanIndex from "@/pages/Zakat/Penerimaan/Index";
@@ -79,7 +79,7 @@ export default function App() {
                     }
                   >
                     <Route path="/agenda" element={<AgendaIndex />} />
-                    <Route path="/zakat" element={<ZakatIndex />} />
+                    <Route path="/zakat/kalkulator" element={<KalkulatorIndex />} />
                     <Route path="/zakat/muzakki" element={<MuzakkiIndex />} />
                     <Route path="/zakat/mustahiq" element={<MustahiqIndex />} />
                     <Route

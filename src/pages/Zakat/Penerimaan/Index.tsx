@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
+import { useDate } from "@/hooks/useDate";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 import { formatRupiah } from "@/utils/formatter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -99,6 +100,8 @@ export default function PenerimaanIndex() {
     const localTransactions = rawTransactions.items ?? rawTransactions.data ?? [];
     const muzakkis = rootData.muzakkis ?? [];
 
+    const { masehiDateStr, hijriDate } = useDate();
+
     const [search, setSearch] = useState("");
     const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">(
         "terbaru",
@@ -161,7 +164,12 @@ export default function PenerimaanIndex() {
                 <PageHeader
                     title="Penerimaan Zakat"
                     description="Pencatatan pemasukan Zakat Maal dan Zakat Fitrah dari para jamaah."
-                />
+                >
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">{masehiDateStr}</p>
+                        <p className="text-xs text-slate-500 mt-1">{hijriDate}</p>
+                    </div>
+                </PageHeader>
 
                 <FilterBar
                     searchPlaceholder="Cari penerimaan..."

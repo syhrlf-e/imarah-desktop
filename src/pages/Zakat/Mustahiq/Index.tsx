@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
+import { useDate } from "@/hooks/useDate";
 import { motion, AnimatePresence } from "framer-motion";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 
@@ -101,6 +102,8 @@ export default function MustahiqIndex() {
     };
 
     const localMustahiqs = rawMustahiqs.items ?? rawMustahiqs.data ?? [];
+
+    const { masehiDateStr, hijriDate } = useDate();
 
     const [search, setSearch] = useState("");
     const [ashnafFilter, setAshnafFilter] = useState("");

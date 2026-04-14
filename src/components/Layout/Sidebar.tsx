@@ -73,6 +73,7 @@ const MENUS: Menu[] = [
     icon: UserCircle,
     roles: ["super_admin", "bendahara", "petugas_zakat"],
     subMenus: [
+      { title: "Kalkulator", href: "/zakat/kalkulator", roles: ["super_admin", "bendahara", "petugas_zakat"] },
       { title: "Muzakki", href: "/zakat/muzakki", roles: ["super_admin", "bendahara", "petugas_zakat"] },
       { title: "Mustahiq", href: "/zakat/mustahiq", roles: ["super_admin", "bendahara", "petugas_zakat"] },
       { title: "Penerimaan", href: "/zakat/penerimaan", roles: ["super_admin", "bendahara", "petugas_zakat"] },
@@ -81,6 +82,7 @@ const MENUS: Menu[] = [
   },
   {
     title: "Tromol",
+    href: "/tromol",
     icon: Box,
     roles: ["super_admin", "bendahara"],
     subMenus: [
@@ -229,9 +231,9 @@ export default function Sidebar({ auth, url }: SidebarProps) {
 
             return (
               <div key={menu.title}>
-                <button
+                <div
                   onClick={() => toggleSubMenu(menu.title)}
-                  className={`group relative z-10 w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
+                  className={`cursor-pointer group relative z-10 w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                     isChildActive && !isOpen
                       ? "text-emerald-700 font-semibold"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
@@ -244,22 +246,38 @@ export default function Sidebar({ auth, url }: SidebarProps) {
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
-                  <div className="flex items-center">
-                    <menu.icon
-                      className={`w-5 h-5 mr-3 transition-colors ${
-                        isChildActive && !isOpen
-                          ? "text-emerald-600"
-                          : "text-slate-400 group-hover:text-slate-600"
+                  {menu.href ? (
+                    <Link to={menu.href} className="flex items-center flex-1">
+                      <menu.icon
+                        className={`w-5 h-5 mr-3 transition-colors ${
+                          isChildActive && !isOpen
+                            ? "text-emerald-600"
+                            : "text-slate-400 group-hover:text-slate-600"
+                        }`}
+                      />
+                      {menu.title}
+                    </Link>
+                  ) : (
+                    <div className="flex items-center flex-1">
+                      <menu.icon
+                        className={`w-5 h-5 mr-3 transition-colors ${
+                          isChildActive && !isOpen
+                            ? "text-emerald-600"
+                            : "text-slate-400 group-hover:text-slate-600"
+                        }`}
+                      />
+                      {menu.title}
+                    </div>
+                  )}
+                  
+                  <div className="p-1 -mr-1 rounded-md transition-colors">
+                    <ChevronRight
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                        isOpen ? "rotate-90" : ""
                       }`}
                     />
-                    {menu.title}
                   </div>
-                  <ChevronRight
-                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-                      isOpen ? "rotate-90" : ""
-                    }`}
-                  />
-                </button>
+                </div>
                 <div
                   className={`overflow-hidden transition-all duration-300 ease-in-out ${
                     isOpen ? "max-h-60 opacity-100 mt-1" : "max-h-0 opacity-0"
