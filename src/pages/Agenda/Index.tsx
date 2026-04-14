@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import AppLayout from "@/layouts/AppLayout";
 import { useSearchParams } from "react-router-dom";
+import dayjs from "dayjs";
+import "dayjs/locale/id";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAgendaData, useAgendaMutation } from "@/hooks/api/useAgenda";
 import {
@@ -20,6 +22,8 @@ import DangerButton from "@/components/DangerButton";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
 import AgendaFormModal from "./components/AgendaFormModal";
+
+dayjs.locale("id");
 
 interface User {
     id: string;
@@ -59,6 +63,29 @@ export default function AgendaIndex() {
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingAgenda, setEditingAgenda] = useState<Agenda | null>(null);
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [localSearch, setLocalSearch] = useState(search);
+
+    const [hijriDate, setHijriDate] = useState<string>("");
+
+    const getHijriDateString = () => {
+        try {
+            const date = new Date();
+            const format = new Intl.DateTimeFormat("id-TN-u-ca-islamic", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+            }).format(date);
+            return format.replace(/ H$/i, "") + " H";
+        } catch (e) {
+            return "Tanggal Hijriyah";
+        }
+    };
+
+    useEffect(() => {
+        setHijriDate(getHijriDateString());
+    }, []);
+
+    const masehiDateStr = dayjs().format("dddd, D MMMM YYYY");
 
     const applyFilters = useCallback(
         (params: { search?: string; sort?: string; order?: string; page?: string }) => {
@@ -73,6 +100,7 @@ export default function AgendaIndex() {
     );
 
     const handleSearchChange = (val: string) => {
+        setLocalSearch(val);
         if (searchTimer.current) clearTimeout(searchTimer.current);
         searchTimer.current = setTimeout(() => {
             applyFilters({ search: val, page: "1" });
@@ -127,45 +155,56 @@ export default function AgendaIndex() {
         }).format(date);
     };
 
+    const canManage = ["super_admin", "bendahara"].includes(user?.role ?? "");
+
     return (
         <AppLayout title="Pengelola Agenda">
             <PageHeader
                 title="Agenda Masjid"
                 description="Kelola jadwal kajian, rapat, dan kegiatan komunitas di masjid."
             >
-                {agendaItems.length > 0 &&
-                    ["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? "") && (
-                        <PrimaryButton
-                            onClick={openAddModal}
-                            className="!py-2.5 font-medium cursor-pointer"
-                        >
-                            <Plus className="w-5 h-5 mr-1" />
-                            Buat Agenda
-                        </PrimaryButton>
-                    )}
+                <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">{masehiDateStr}</p>
+                    <p className="text-xs text-slate-500 mt-1">{hijriDate}</p>
+                </div>
             </PageHeader>
 
             <FilterBar
                 searchPlaceholder="Cari agenda kegiatan..."
-                searchValue={search}
+                searchValue={localSearch}
                 onSearchChange={handleSearchChange}
             >
-                <button
-                    type="button"
-                    onClick={() => applyFilters({ sort: sortAlpha === "a-z" ? "z-a" : "a-z", page: "1" })}
-                    className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                >
-                    <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
-                    {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => applyFilters({ order: sortOrder === "terbaru" ? "terlama" : "terbaru", page: "1" })}
-                    className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                >
-                    <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
-                    {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => applyFilters({ sort: sortAlpha === "a-z" ? "z-a" : "a-z", page: "1" })}
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    >
+                        <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
+                        {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => applyFilters({ order: sortOrder === "terbaru" ? "terlama" : "terbaru", page: "1" })}
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    >
+                        <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
+                        {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
+                    </button>
+
+                    {canManage && (
+                        <>
+                            <div className="h-6 w-px bg-slate-200 mx-1" />
+                            <PrimaryButton
+                                onClick={openAddModal}
+                                className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                            >
+                                <Plus className="w-5 h-5 mr-1" />
+                                Buat Agenda
+                            </PrimaryButton>
+                        </>
+                    )}
+                </div>
             </FilterBar>
 
             {isLoading ? (
@@ -182,7 +221,7 @@ export default function AgendaIndex() {
                                     <th scope="col" className="px-6 py-4">Kategori</th>
                                     <th scope="col" className="px-6 py-4">Waktu</th>
                                     <th scope="col" className="px-6 py-4">Lokasi</th>
-                                    {["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? "") && (
+                                    {canManage && (
                                         <th scope="col" className="px-6 py-4 text-right pr-6">Aksi</th>
                                     )}
                                 </tr>
@@ -224,7 +263,7 @@ export default function AgendaIndex() {
                                                     <span className="text-slate-400 italic">Belum diisi</span>
                                                 )}
                                             </td>
-                                            {["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? "") && (
+                                            {canManage && (
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                                                     <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button
@@ -250,7 +289,7 @@ export default function AgendaIndex() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? "") ? 5 : 4} className="py-12">
+                                        <td colSpan={canManage ? 5 : 4} className="py-12">
                                             <div className="flex flex-col items-center justify-center text-center">
                                                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                                     <CalendarIcon className="w-8 h-8 text-slate-300" />
@@ -259,7 +298,7 @@ export default function AgendaIndex() {
                                                 <p className="text-sm text-slate-500 max-w-sm mb-6">
                                                     Jadwal kajian dan kegiatan masih kosong. Tambahkan agenda baru untuk mulai menginformasikan kegiatan ke jamaah.
                                                 </p>
-                                                {["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? "") && (
+                                                {canManage && (
                                                     <PrimaryButton
                                                         onClick={openAddModal}
                                                         className="inline-flex items-center justify-center !py-2.5 font-medium cursor-pointer"

@@ -169,45 +169,50 @@ export default function PenyaluranIndex() {
                 <PageHeader
                     title="Riwayat Penyaluran"
                     description="Pencatatan penyaluran Zakat Maal dan Zakat Fitrah kepada para Mustahiq."
-                >
-                    {transactions.data.length > 0 && (
-                        <PrimaryButton
-                            onClick={() => setIsFormOpen(true)}
-                            className="!py-2.5 font-medium cursor-pointer"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Catat Penyaluran Zakat
-                        </PrimaryButton>
-                    )}
-                </PageHeader>
+                />
 
                 <FilterBar
                     searchPlaceholder="Cari penyaluran..."
                     searchValue={search}
                     onSearchChange={setSearch}
                 >
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setSortAlpha(sortAlpha === "a-z" ? "z-a" : "a-z")
-                        }
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
-                        {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setSortOrder(
-                                sortOrder === "terbaru" ? "terlama" : "terbaru",
-                            )
-                        }
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
-                        {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSortAlpha(sortAlpha === "a-z" ? "z-a" : "a-z")
+                            }
+                            className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                        >
+                            <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
+                            {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSortOrder(
+                                    sortOrder === "terbaru" ? "terlama" : "terbaru",
+                                )
+                            }
+                            className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                        >
+                            <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
+                            {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
+                        </button>
+
+                        {canCreate && (
+                            <>
+                                <div className="h-6 w-px bg-slate-200 mx-1" />
+                                <PrimaryButton
+                                    onClick={() => setIsFormOpen(true)}
+                                    className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                                >
+                                    <Plus className="w-5 h-5 mr-1" />
+                                    Catat Penyaluran Zakat
+                                </PrimaryButton>
+                            </>
+                        )}
+                    </div>
                 </FilterBar>
 
                 <DataTable
@@ -287,15 +292,17 @@ export default function PenyaluranIndex() {
                     keyExtractor={(row) => row.id}
                     emptyState={
                         <EmptyState
-                            message="Belum ada riwayat penyaluran zakat yang tercatat."
-                            actionLabel="Catat Penyaluran Zakat"
-                            onAction={() => setIsFormOpen(true)}
+                            message={
+                                search
+                                    ? "Data penyaluran tidak ditemukan."
+                                    : "Belum ada riwayat penyaluran zakat yang tercatat."
+                            }
                         />
                     }
                 />
 
                 {transactions.last_page > 1 && (
-                    <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
+                    <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 shrink-0">
                         <span className="text-sm text-slate-500">
                             <span className="font-semibold text-slate-800">
                                 {transactions.total}

@@ -140,19 +140,18 @@ export default function MuzakkiIndex() {
             }
         }
     };
-    const handleImport = async () => {
-        if (!importFile) return;
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
         setImporting(true);
         try {
             const form = new FormData();
-            form.append('file', importFile);
+            form.append('file', file);
             await import('@/lib/api').then(m => m.default.post('/zakat/muzakki/import', form));
-            setIsImportOpen(false);
-            setImportFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
         } catch {
         } finally {
             setImporting(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -169,52 +168,65 @@ export default function MuzakkiIndex() {
                 <PageHeader
                     title="Data Muzakki"
                     description="Kelola direktori donatur zakat, infaq, dan shodaqoh."
-                >
-                    <button
-                        onClick={() => setIsImportOpen(true)}
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium cursor-pointer"
-                    >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Import Excel
-                    </button>
-                    {muzakkis.data.length > 0 && (
-                        <PrimaryButton
-                            onClick={handleCreate}
-                            className="!py-2.5 font-medium cursor-pointer"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Daftarkan Muzakki
-                        </PrimaryButton>
-                    )}
-                </PageHeader>
+                />
 
                 <FilterBar
                     searchPlaceholder="Cari nama jamaah atau nomor telepon..."
                     searchValue={search}
                     onSearchChange={setSearch}
                 >
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setSortAlpha(sortAlpha === "a-z" ? "z-a" : "a-z")
-                        }
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
-                        {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() =>
-                            setSortOrder(
-                                sortOrder === "terbaru" ? "terlama" : "terbaru",
-                            )
-                        }
-                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                    >
-                        <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
-                        {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSortAlpha(sortAlpha === "a-z" ? "z-a" : "a-z")
+                            }
+                            className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                        >
+                            <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
+                            {sortAlpha === "a-z" ? "A-Z" : "Z-A"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setSortOrder(
+                                    sortOrder === "terbaru" ? "terlama" : "terbaru",
+                                )
+                            }
+                            className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                        >
+                            <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-400" />
+                            {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
+                        </button>
+
+                        {canCreate && (
+                            <>
+                                <div className="h-6 w-px bg-slate-200 mx-1" />
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept=".xlsx,.xls,.csv"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={importing}
+                                    className="inline-flex items-center justify-center px-4 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors font-medium cursor-pointer disabled:opacity-50 shadow-sm"
+                                >
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    {importing ? "Mengimport..." : "Import Excel"}
+                                </button>
+                                <PrimaryButton
+                                    onClick={handleCreate}
+                                    className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                                >
+                                    <Plus className="w-5 h-5 mr-1" />
+                                    Daftarkan Muzakki
+                                </PrimaryButton>
+                            </>
+                        )}
+                    </div>
                 </FilterBar>
 
                 <DataTable
@@ -307,16 +319,18 @@ export default function MuzakkiIndex() {
                     keyExtractor={(row) => row.id}
                     emptyState={
                         <EmptyState
-                            message="Belum ada data muzakki yang sesuai kriteria pencarian."
-                            actionLabel="Daftarkan Muzakki"
-                            onAction={handleCreate}
+                            message={
+                                search
+                                    ? "Data muzakki tidak ditemukan."
+                                    : "Belum ada data muzakki yang tercatat."
+                            }
                         />
                     }
                 />
 
                 {/* Pagination */}
                 {muzakkis.last_page > 1 && (
-                    <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
+                    <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 shrink-0">
                         <span className="text-sm text-slate-500">
                             <span className="font-semibold text-slate-800">
                                 {muzakkis.total}
@@ -414,88 +428,6 @@ export default function MuzakkiIndex() {
                 terkait tidak akan dihapus permanen, namun status donatur ini
                 akan dinonaktifkan.
             </ConfirmDialog>
-
-            {isImportOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-                        <div className="flex items-center justify-between p-6 border-b border-slate-100">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-50 rounded-xl">
-                                    <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    Import Data Muzakki
-                                </h3>
-                            </div>
-                            <button
-                                onClick={() => {
-                                    setIsImportOpen(false);
-                                    setImportFile(null);
-                                }}
-                                className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
-                            >
-                                <X className="w-5 h-5 text-slate-400" />
-                            </button>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 text-center hover:border-green-300 transition-colors">
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".xlsx,.xls,.csv"
-                                    onChange={(e) =>
-                                        setImportFile(e.target.files?.[0] || null)
-                                    }
-                                    className="hidden"
-                                    id="import-file-muzakki"
-                                />
-                                <label
-                                    htmlFor="import-file-muzakki"
-                                    className="cursor-pointer"
-                                >
-                                    <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                                    <p className="text-sm font-medium text-slate-700">
-                                        {importFile
-                                            ? importFile.name
-                                            : "Klik untuk pilih file"}
-                                    </p>
-                                    <p className="text-xs text-slate-400 mt-1">
-                                        .xlsx, .xls, atau .csv (maks 5MB)
-                                    </p>
-                                </label>
-                            </div>
-                            <div className="bg-slate-50 rounded-xl p-4 text-xs text-slate-500">
-                                <p className="font-semibold text-slate-600 mb-1">
-                                    Format kolom Excel:
-                                </p>
-                                <p>Nama | No HP | Alamat</p>
-                                <p className="mt-1 text-slate-400">
-                                    Baris pertama harus berisi header (Nama,
-                                    No_HP, Alamat)
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex justify-end gap-2 p-6 border-t border-slate-100">
-                            <button
-                                onClick={() => {
-                                    setIsImportOpen(false);
-                                    setImportFile(null);
-                                }}
-                                className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
-                            >
-                                Batal
-                            </button>
-                            <button
-                                onClick={handleImport}
-                                disabled={!importFile || importing}
-                                className="px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                            >
-                                {importing ? "Mengimport..." : "Import Data"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </AppLayout>
     );
 }

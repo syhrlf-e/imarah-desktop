@@ -109,10 +109,20 @@ export default function Sidebar({ auth, url }: SidebarProps) {
   const userRole = auth.user.role;
   const isActive = (route: string) => url.startsWith(route);
 
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    Zakat: url.startsWith("/zakat"),
-    Tromol: url.startsWith("/tromol"),
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem("imarah_sidebar_menus");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      Zakat: url.startsWith("/zakat"),
+      Tromol: url.startsWith("/tromol"),
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem("imarah_sidebar_menus", JSON.stringify(openMenus));
+  }, [openMenus]);
 
   useEffect(() => {
     if (url.startsWith("/zakat") && !openMenus["Zakat"]) {
