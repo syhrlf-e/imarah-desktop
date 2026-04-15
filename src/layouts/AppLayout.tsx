@@ -154,7 +154,7 @@ export default function AppLayout({ title, children }: Props) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-[200]
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-200
                                    bg-slate-900 text-white text-sm font-medium
                                    px-4 py-2 rounded-full shadow-lg"
           >
