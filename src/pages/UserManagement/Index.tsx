@@ -152,13 +152,12 @@ export default function Index() {
                                 />
                             </div>
 
-                            <PrimaryButton
+                            <button
                                 onClick={() => setIsAddModalOpen(true)}
-                                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-70"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer"
                             >
-                                <Plus size={18} />
-                                <span>Tambah Staf</span>
-                            </PrimaryButton>
+                                Tambah Staf
+                            </button>
                         </div>
                     </div>
                 </div>

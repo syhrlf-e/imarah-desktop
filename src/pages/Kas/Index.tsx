@@ -38,15 +38,23 @@ import DataTable, { ColumnDef } from "@/components/DataTable";
 import PrimaryButton from "@/components/PrimaryButton";
 import KasFormModal from "./components/KasFormModal";
 
-const CATEGORY_OPTIONS = [
-    { value: "", label: "Semua Kategori" },
+const CATEGORY_OPTIONS_IN = [
     { value: "zakat_fitrah", label: "Zakat Fitrah" },
     { value: "zakat_maal", label: "Zakat Maal" },
     { value: "infaq", label: "Infaq / Sedekah" },
     { value: "infaq_tromol", label: "Infaq Tromol" },
+];
+
+const CATEGORY_OPTIONS_OUT = [
     { value: "operasional", label: "Operasional" },
     { value: "gaji", label: "Gaji" },
     { value: "lainnya", label: "Lainnya" },
+];
+
+const ALL_CATEGORY_OPTIONS = [
+    { value: "", label: "Semua Kategori" },
+    ...CATEGORY_OPTIONS_IN,
+    ...CATEGORY_OPTIONS_OUT,
 ];
 
 
@@ -134,7 +142,7 @@ export default function KasIndex({
     };
 
     const handleTypeChange = (newType: string) => {
-        applyFilters({ type: newType, page: 1 });
+        applyFilters({ type: newType, page: 1, category: "" });
     };
 
     const handleCategoryChange = (val: string) => {
@@ -218,183 +226,185 @@ export default function KasIndex({
     };
 
     const formatCat = (cat: string) => {
+        if (!cat) return "-";
         const withSpaces = cat.replace(/_/g, " ");
         return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
     };
 
     return (
         <AppLayout title="Pengelola Kas">
-            {/* Header Section */}
-            <PageHeader
-                title="Kas Masjid"
-                description="Kelola dan pantau seluruh transaksi pemasukan dan pengeluaran keuangan masjid."
-                className="shrink-0"
-            >
-                <div className="text-right">
-                    <p className="text-sm font-bold text-slate-900">
-                        {masehiDateStr}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                        {hijriDate}
-                    </p>
-                </div>
-            </PageHeader>
-
-            {/* ── DESKTOP ONLY: Summary Cards + FilterBar + DataTable ── */}
-            <div className="flex flex-col flex-1 min-h-[500px]">
-                <KasSummaryCards
-                    totalSaldo={localSummary.saldo_total_kas}
-                    pemasukanBulanIni={localSummary.pemasukan_bulan_ini}
-                    pengeluaranBulanIni={localSummary.pengeluaran_bulan_ini}
-                    surplusDefisit={localSummary.saldo_akhir_bulan}
-                    monthLabel={getMonthName(month)}
-                    loading={loadingSummary}
-                    className="mb-8 md:px-6 shrink-0"
-                />
-
-                {/* Desktop Toolbar — search, filter, sort */}
-                <FilterBar
-                    searchPlaceholder="Cari keterangan transaksi..."
-                    searchValue={localSearch}
-                    onSearchChange={(val) =>
-                        handleSearchChange({
-                            target: { value: val },
-                        } as React.ChangeEvent<HTMLInputElement>)
-                    }
-                    addon={
-                        <div className="flex items-center justify-start gap-1 p-1 bg-slate-100 rounded-xl">
-                            {(
-                                [
-                                    { value: "", label: "Semua" },
-                                    { value: "in", label: "Masuk" },
-                                    { value: "out", label: "Keluar" },
-                                ] as {
-                                    value: "" | "in" | "out";
-                                    label: string;
-                                }[]
-                            ).map((opt) => (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    onClick={() => handleTypeChange(opt.value)}
-                                    className={`relative flex-none px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors z-10 ${
-                                        typeFilter === opt.value
-                                            ? "text-green-700"
-                                            : "text-slate-500 hover:text-slate-700"
-                                    }`}
-                                >
-                                    {typeFilter === opt.value && (
-                                        <motion.div
-                                            layoutId="activeFilterKasTab"
-                                            className="absolute inset-0 bg-white border border-green-500 rounded-lg shadow-sm -z-10"
-                                            transition={{
-                                                type: "spring",
-                                                stiffness: 400,
-                                                damping: 30,
-                                            }}
-                                        />
-                                    )}
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                    }
+            <div className="flex flex-1 min-h-0 flex-col">
+                {/* Header Section */}
+                <PageHeader
+                    title="Kas Masjid"
+                    description="Kelola dan pantau seluruh transaksi pemasukan dan pengeluaran keuangan masjid."
+                    className="shrink-0"
                 >
-                    {/* Kategori Filter Dropdown */}
-                    <div className="relative shrink-0 z-50">
-                        {isCategoryFilterOpen && (
-                            <div
-                                className="fixed inset-0 z-40"
-                                onClick={() => setIsCategoryFilterOpen(false)}
-                            ></div>
-                        )}
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setIsCategoryFilterOpen(!isCategoryFilterOpen)
-                            }
-                            className="relative z-50 inline-flex items-center justify-between w-[200px] px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
-                        >
-                            <Filter className="w-4 h-4 mr-2 text-slate-500 shrink-0" />
-                            <span className="truncate flex-1 text-left">
-                                {CATEGORY_OPTIONS.find(
-                                    (opt) => opt.value === categoryFilter,
-                                )?.label || "Semua Kategori"}
-                            </span>
-                            <ChevronDown
-                                className={`w-4 h-4 text-slate-400 transition-transform duration-200 ml-2 shrink-0 ${isCategoryFilterOpen ? "rotate-180" : ""}`}
-                            />
-                        </button>
-                        <AnimatePresence>
-                            {isCategoryFilterOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 10 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-[60] p-1"
-                                >
-                                    <div className="max-h-[300px] overflow-y-auto">
-                                        {CATEGORY_OPTIONS.map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() =>
-                                                    handleCategoryChange(
-                                                        opt.value,
-                                                    )
-                                                }
-                                                className={`w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
-                                                    categoryFilter === opt.value
-                                                        ? "bg-green-50 text-green-700 font-semibold"
-                                                        : "text-slate-600 hover:bg-slate-50"
-                                                }`}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                    <div className="text-right">
+                        <p className="text-sm font-bold text-slate-900">
+                            {masehiDateStr}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                            {hijriDate}
+                        </p>
                     </div>
-                    {/* Urutkan & Catat Transaksi */}
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const newSort =
-                                    sortOrder === "terbaru" ? "terlama" : "terbaru";
-                                applyFilters({ sort: newSort, page: 1 });
-                            }}
-                            className="inline-flex items-center justify-center w-auto px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0"
-                        >
-                            <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-500" />
-                            {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
-                        </button>
-                        
-                        {isBendaharaOrAdmin && (
-                            <>
-                                <div className="h-6 w-px bg-slate-300 mx-1"></div>
-                                <button
-                                    onClick={openAddModal}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    Catat Transaksi
-                                </button>
-                            </>
-                        )}
-                    </div>
-                </FilterBar>
+                </PageHeader>
 
-                <DataTable
-                    className="flex flex-1 min-h-[400px]"
-                    tableFixed
-                    loading={loadingKas}
-                    isFetching={fetchingKas}
-                    columns={
-                        [
+                {/* ── DESKTOP ONLY: Summary Cards + FilterBar + DataTable ── */}
+                <div className="flex flex-1 min-h-0 flex-col">
+                    <KasSummaryCards
+                        totalSaldo={localSummary.saldo_total_kas}
+                        pemasukanBulanIni={localSummary.pemasukan_bulan_ini}
+                        pengeluaranBulanIni={localSummary.pengeluaran_bulan_ini}
+                        surplusDefisit={localSummary.saldo_akhir_bulan}
+                        monthLabel={getMonthName(month)}
+                        loading={loadingSummary}
+                        className="mb-8 md:px-6 shrink-0"
+                    />
+
+                    {/* Desktop Toolbar — search, filter, sort */}
+                    <FilterBar
+                        searchPlaceholder="Cari keterangan transaksi..."
+                        searchValue={localSearch}
+                        onSearchChange={(val) =>
+                            handleSearchChange({
+                                target: { value: val },
+                            } as React.ChangeEvent<HTMLInputElement>)
+                        }
+                        addon={
+                            <div className="flex items-center justify-start gap-1 p-1 bg-slate-100 rounded-xl">
+                                {(
+                                    [
+                                        { value: "", label: "Semua" },
+                                        { value: "in", label: "Masuk" },
+                                        { value: "out", label: "Keluar" },
+                                    ] as {
+                                        value: "" | "in" | "out";
+                                        label: string;
+                                    }[]
+                                ).map((opt) => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        onClick={() => handleTypeChange(opt.value)}
+                                        className={`relative flex-none px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors z-10 ${
+                                            typeFilter === opt.value
+                                                ? "text-green-700"
+                                                : "text-slate-500 hover:text-slate-700"
+                                        }`}
+                                    >
+                                        {typeFilter === opt.value && (
+                                            <motion.div
+                                                layoutId="activeFilterKasTab"
+                                                className="absolute inset-0 bg-white border border-green-500 rounded-lg shadow-sm -z-10"
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 400,
+                                                    damping: 30,
+                                                }}
+                                            />
+                                        )}
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        }
+                    >
+                        {/* Kategori Filter Dropdown */}
+                        <div className="relative shrink-0 z-50">
+                            {isCategoryFilterOpen && (
+                                <div
+                                    className="fixed inset-0 z-40"
+                                    onClick={() => setIsCategoryFilterOpen(false)}
+                                ></div>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setIsCategoryFilterOpen(!isCategoryFilterOpen)
+                                }
+                                className="relative z-50 inline-flex items-center justify-between w-[200px] px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-2xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                            >
+                                <Filter className="w-4 h-4 mr-2 text-slate-500 shrink-0" />
+                                <span className="truncate flex-1 text-left">
+                                    {ALL_CATEGORY_OPTIONS.find(
+                                        (opt) => opt.value === categoryFilter,
+                                    )?.label || "Semua Kategori"}
+                                </span>
+                                <ChevronDown
+                                    className={`w-4 h-4 text-slate-400 transition-transform duration-200 ml-2 shrink-0 ${isCategoryFilterOpen ? "rotate-180" : ""}`}
+                                />
+                            </button>
+                            <AnimatePresence>
+                                {isCategoryFilterOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 10 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-[60] p-1"
+                                    >
+                                        <div className="max-h-[300px] overflow-y-auto">
+                                            {(typeFilter === "in" ? [{ value: "", label: "Semua Kategori" }, ...CATEGORY_OPTIONS_IN] : typeFilter === "out" ? [{ value: "", label: "Semua Kategori" }, ...CATEGORY_OPTIONS_OUT] : ALL_CATEGORY_OPTIONS).map((opt) => (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleCategoryChange(
+                                                            opt.value,
+                                                        )
+                                                    }
+                                                    className={`w-full text-left px-3 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                                                        categoryFilter === opt.value
+                                                            ? "bg-green-50 text-green-700 font-semibold"
+                                                            : "text-slate-600 hover:bg-slate-50"
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                        {/* Urutkan & Catat Transaksi */}
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const newSort =
+                                        sortOrder === "terbaru" ? "terlama" : "terbaru";
+                                    applyFilters({ sort: newSort, page: 1 });
+                                }}
+                                className="inline-flex items-center justify-center w-auto px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer shrink-0"
+                            >
+                                <SlidersHorizontal className="w-4 h-4 mr-2 text-slate-500" />
+                                {sortOrder === "terbaru" ? "Terbaru" : "Terlama"}
+                            </button>
+
+                            {isBendaharaOrAdmin && (
+                                <>
+                                    <div className="h-6 w-px bg-slate-300 mx-1"></div>
+                                    <button
+                                        onClick={openAddModal}
+                                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer shrink-0"
+                                    >
+                                        Catat Transaksi
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </FilterBar>
+
+                    <div className="flex flex-1 min-h-0 flex-col">
+                        <DataTable
+                            className="flex flex-1 min-h-0"
+                            tableFixed
+                            loading={loadingKas}
+                            isFetching={fetchingKas}
+                            columns={
+                                [
                             {
                                 key: "tanggal",
                                 header: "Tanggal",
@@ -440,7 +450,7 @@ export default function KasIndex({
                                 width: "w-[12%]",
                                 render: (item) => (
                                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-700 capitalize border border-slate-200">
-                                        {item.category.replace(/_/g, " ")}
+                                        {item.category?.replace(/_/g, " ") || "-"}
                                     </span>
                                 ),
                             },
@@ -526,108 +536,106 @@ export default function KasIndex({
                                     </div>
                                 ),
                             },
-                        ] satisfies ColumnDef<(typeof localTransactions)[0]>[]
-                    }
-                    data={localTransactions}
-                    keyExtractor={(item) => item.id}
-                    emptyState={
-                        <div className="flex flex-col items-center justify-center text-slate-400 py-2">
-                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                                <Search className="w-8 h-8 text-slate-300" />
+                                ] satisfies ColumnDef<(typeof localTransactions)[0]>[]
+                            }
+                            data={localTransactions}
+                            keyExtractor={(item) => item.id}
+                            emptyState={
+                                <div className="flex flex-col items-center justify-center text-slate-400 py-2">
+                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                        <Search className="w-8 h-8 text-slate-300" />
+                                    </div>
+                                    <p className="font-bold text-slate-800">
+                                        Belum ada data transaksi
+                                    </p>
+                                    <p className="text-sm text-slate-500 mt-1">
+                                        Transaksi yang ditambahkan akan muncul di sini.
+                                    </p>
+                                </div>
+                            }
+                        />
+
+                        <div className="mt-2 flex shrink-0 flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm sm:flex-row">
+                            {/* Info */}
+                            <span className="text-sm text-slate-500">
+                                <span className="font-semibold text-slate-800">
+                                    {transactions.total}
+                                </span>{" "}
+                                data{" · Halaman "}
+                                <span className="font-semibold text-slate-800">
+                                    {transactions.current_page}
+                                </span>{" "}
+                                dari{" "}
+                                <span className="font-semibold text-slate-800">
+                                    {transactions.last_page}
+                                </span>
+                            </span>
+
+                            {/* Prev / Page Numbers / Next */}
+                            <div className="flex items-center gap-1.5">
+                                {/* Prev */}
+                                <button
+                                    type="button"
+                                    disabled={!transactions.prev_page_url}
+                                    onClick={() =>
+                                        handlePageNav(-1, transactions.prev_page_url)
+                                    }
+                                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft className="w-4 h-4" />
+                                </button>
+
+                                {/* Page numbers */}
+                                <AnimatePresence mode="popLayout">
+                                    {[
+                                        transactions.current_page - 1,
+                                        transactions.current_page,
+                                        transactions.current_page + 1,
+                                    ]
+                                        .filter(
+                                            (p) =>
+                                                p >= 1 && p <= transactions.last_page,
+                                        )
+                                        .map((p) => (
+                                            <motion.button
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                transition={{ duration: 0.2 }}
+                                                key={p}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (p === transactions.current_page) return;
+                                                    applyFilters({ page: p });
+                                                }}
+                                                className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
+                                                    p === transactions.current_page
+                                                        ? "bg-green-600 text-white border-green-600 cursor-default"
+                                                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                                }`}
+                                            >
+                                                {p}
+                                            </motion.button>
+                                        ))}
+                                </AnimatePresence>
+
+                                {/* Next */}
+                                <button
+                                    type="button"
+                                    disabled={!transactions.next_page_url}
+                                    onClick={() =>
+                                        handlePageNav(1, transactions.next_page_url)
+                                    }
+                                    className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight className="w-4 h-4" />
+                                </button>
                             </div>
-                            <p className="font-bold text-slate-800">
-                                Belum ada data transaksi
-                            </p>
-                            <p className="text-sm text-slate-500 mt-1">
-                                Transaksi yang ditambahkan akan muncul di sini.
-                            </p>
                         </div>
-                    }
-                />
-            </div>
-            {/* end contents */}
-
-            {/* Pagination Desktop - Muncul dinamis hanya jika lebih dari 1 halaman */}
-            {transactions.last_page > 1 && (
-                <div className="flex px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
-                    {/* Info */}
-                    <span className="text-sm text-slate-500">
-                        <span className="font-semibold text-slate-800">
-                            {transactions.total}
-                        </span>{" "}
-                        data{" · Halaman "}
-                        <span className="font-semibold text-slate-800">
-                            {transactions.current_page}
-                        </span>{" "}
-                        dari{" "}
-                        <span className="font-semibold text-slate-800">
-                            {transactions.last_page}
-                        </span>
-                    </span>
-
-                    {/* Prev / Page Numbers / Next */}
-                    <div className="flex items-center gap-1.5">
-                        {/* Prev */}
-                        <button
-                            type="button"
-                            disabled={!transactions.prev_page_url}
-                            onClick={() =>
-                                handlePageNav(-1, transactions.prev_page_url)
-                            }
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
-
-                        {/* Page numbers */}
-                        <AnimatePresence mode="popLayout">
-                            {[
-                                transactions.current_page - 1,
-                                transactions.current_page,
-                                transactions.current_page + 1,
-                            ]
-                                .filter(
-                                    (p) =>
-                                        p >= 1 && p <= transactions.last_page,
-                                )
-                                .map((p) => (
-                                    <motion.button
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                        key={p}
-                                        type="button"
-                                        onClick={() => {
-                                            if (p === transactions.current_page) return;
-                                            applyFilters({ page: p });
-                                        }}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
-                                            p === transactions.current_page
-                                                ? "bg-green-600 text-white border-green-600 cursor-default"
-                                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                        }`}
-                                    >
-                                        {p}
-                                    </motion.button>
-                                ))}
-                        </AnimatePresence>
-
-                        {/* Next */}
-                        <button
-                            type="button"
-                            disabled={!transactions.next_page_url}
-                            onClick={() =>
-                                handlePageNav(1, transactions.next_page_url)
-                            }
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
                     </div>
                 </div>
-            )}
+            </div>
 
             <KasFormModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         </AppLayout>

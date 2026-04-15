@@ -38,6 +38,8 @@ interface Agenda {
     end_time: string | null;
     location: string | null;
     type: "kajian" | "rapat" | "kegiatan_sosial" | "lainnya";
+    speaker_name: string | null;
+    status: "terjadwal" | "berlangsung" | "selesai" | "batal";
     created_at: string;
     creator?: User;
 }
@@ -195,13 +197,12 @@ export default function AgendaIndex() {
                     {canManage && (
                         <>
                             <div className="h-6 w-px bg-slate-200 mx-1" />
-                            <PrimaryButton
+                            <button
                                 onClick={openAddModal}
-                                className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                                className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer"
                             >
-                                <Plus className="w-5 h-5 mr-1" />
                                 Buat Agenda
-                            </PrimaryButton>
+                            </button>
                         </>
                     )}
                 </div>
@@ -217,10 +218,12 @@ export default function AgendaIndex() {
                         <table className="min-w-full text-sm text-left align-middle">
                             <thead className="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-20">
                                 <tr>
-                                    <th scope="col" className="px-6 py-4">Agenda</th>
-                                    <th scope="col" className="px-6 py-4">Kategori</th>
                                     <th scope="col" className="px-6 py-4">Waktu</th>
+                                    <th scope="col" className="px-6 py-4">Agenda</th>
+                                    <th scope="col" className="px-6 py-4">Pemateri</th>
+                                    <th scope="col" className="px-6 py-4">Kategori</th>
                                     <th scope="col" className="px-6 py-4">Lokasi</th>
+                                    <th scope="col" className="px-6 py-4">Status</th>
                                     {canManage && (
                                         <th scope="col" className="px-6 py-4 text-right pr-6">Aksi</th>
                                     )}
@@ -230,17 +233,6 @@ export default function AgendaIndex() {
                                 {agendaItems.length > 0 ? (
                                     agendaItems.map((agenda) => (
                                         <tr key={agenda.id} className="bg-white hover:bg-slate-50/80 transition-colors group">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="font-bold text-slate-800 mb-1">{agenda.title}</div>
-                                                <div className="text-xs text-slate-500 truncate max-w-[200px]" title={agenda.description || ""}>
-                                                    {agenda.description || <span className="italic">Tidak ada deskripsi</span>}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${typeStyles[agenda.type]} capitalize`}>
-                                                    {agenda.type.replace(/_/g, " ")}
-                                                </span>
-                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-slate-600">
                                                 <div className="flex items-start">
                                                     <CalendarIcon className="w-4 h-4 mr-2 mt-0.5 text-slate-400 shrink-0" />
@@ -253,7 +245,25 @@ export default function AgendaIndex() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-slate-600 max-w-xs">
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="font-bold text-slate-800 mb-1">{agenda.title}</div>
+                                                <div className="text-xs text-slate-500 truncate max-w-[200px]" title={agenda.description || ""}>
+                                                    {agenda.description || <span className="italic">Tidak ada deskripsi</span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                                                {agenda.speaker_name ? (
+                                                    <span className="font-medium">{agenda.speaker_name}</span>
+                                                ) : (
+                                                    <span className="text-slate-400 italic">Belum diisi</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 max-w-xs">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${typeStyles[agenda.type]} capitalize`}>
+                                                    {agenda.type?.replace(/_/g, " ") || "-"}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-600 max-w-xs">
                                                 {agenda.location ? (
                                                     <div className="flex items-start">
                                                         <MapPin className="w-4 h-4 mr-2 mt-0.5 text-slate-400 shrink-0" />
@@ -262,6 +272,16 @@ export default function AgendaIndex() {
                                                 ) : (
                                                     <span className="text-slate-400 italic">Belum diisi</span>
                                                 )}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border capitalize ${
+                                                    agenda.status === 'terjadwal' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                    agenda.status === 'berlangsung' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                    agenda.status === 'selesai' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                    'bg-red-50 text-red-700 border-red-200'
+                                                }`}>
+                                                    {agenda.status || 'terjadwal'}
+                                                </span>
                                             </td>
                                             {canManage && (
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
@@ -289,7 +309,7 @@ export default function AgendaIndex() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={canManage ? 5 : 4} className="py-12">
+                                        <td colSpan={canManage ? 7 : 6} className="py-12">
                                             <div className="flex flex-col items-center justify-center text-center">
                                                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
                                                     <CalendarIcon className="w-8 h-8 text-slate-300" />
@@ -298,15 +318,6 @@ export default function AgendaIndex() {
                                                 <p className="text-sm text-slate-500 max-w-sm mb-6">
                                                     Jadwal kajian dan kegiatan masih kosong. Tambahkan agenda baru untuk mulai menginformasikan kegiatan ke jamaah.
                                                 </p>
-                                                {canManage && (
-                                                    <PrimaryButton
-                                                        onClick={openAddModal}
-                                                        className="inline-flex items-center justify-center !py-2.5 font-medium cursor-pointer"
-                                                    >
-                                                        <Plus className="w-5 h-5 mr-1" />
-                                                        Buat Agenda
-                                                    </PrimaryButton>
-                                                )}
                                             </div>
                                         </td>
                                     </tr>

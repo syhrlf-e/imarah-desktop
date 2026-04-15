@@ -29,10 +29,14 @@ interface User {
 
 interface InventoryItem {
     id: string;
+    item_code: string | null;
     item_name: string;
+    category: "aset" | "habis_pakai";
     quantity: number;
     condition: "baik" | "rusak_ringan" | "rusak_berat";
     location: string | null;
+    source: "beli" | "wakaf" | "hibah";
+    source_details: string | null;
     notes: string | null;
     created_at: string;
     creator?: User;
@@ -232,9 +236,8 @@ export default function InventarisIndex() {
                 <div className="flex items-center gap-2 shrink-0">
                     <button
                         onClick={openAddModal}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-sm font-semibold rounded-xl shadow-sm transition-all shrink-0 cursor-pointer"
+                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer shrink-0"
                     >
-                        <Plus className="w-4 h-4" />
                         Catat Inventaris
                     </button>
                 </div>
@@ -249,61 +252,101 @@ export default function InventarisIndex() {
                 columns={
                     [
                         {
-                            key: "tanggal",
-                            header: "Tanggal",
-                            width: "w-[15%]",
-                            cellClassName: "whitespace-nowrap text-slate-600 font-medium text-sm",
+                            key: "kode_barang",
+                            header: "Kode Barang",
+                            width: "w-[12%]",
+                            cellClassName: "whitespace-nowrap",
                             render: (item) => (
-                                <>
-                                    <div>{new Date(item.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                                    <div className="text-xs text-slate-400 mt-0.5">{new Date(item.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</div>
-                                </>
+                                item.item_code ? (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                        {item.item_code}
+                                    </span>
+                                ) : (
+                                    <span className="text-slate-400 italic text-xs">-</span>
+                                )
                             ),
                         },
                         {
                             key: "nama",
                             header: "Nama Barang",
-                            width: "w-[20%]",
+                            width: "w-[15%]",
                             cellClassName: "whitespace-nowrap",
-                            render: (item) => <span className="font-semibold text-slate-700">{item.item_name}</span>,
-                        },
-                        {
-                            key: "jumlah",
-                            header: "Jumlah",
-                            width: "w-[12%]",
-                            headerClassName: "text-center",
-                            cellClassName: "whitespace-nowrap text-center",
-                            render: (item) => <span className="text-slate-700 font-medium">{item.quantity}</span>,
+                            render: (item) => (
+                                <div>
+                                    <div className="font-bold text-slate-800">{item.item_name}</div>
+                                    <div className="text-xs text-slate-500 mt-0.5 capitalize">{item.category?.replace('_', ' ') || 'Aset'}</div>
+                                </div>
+                            ),
                         },
                         {
                             key: "kondisi",
                             header: "Kondisi",
-                            width: "w-[13%]",
+                            width: "w-[10%]",
                             cellClassName: "whitespace-nowrap",
                             render: (item) => (
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs border ${conditionStyles[item.condition]}`}>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] border ${conditionStyles[item.condition]}`}>
                                     {conditionLabels[item.condition]}
                                 </span>
                             ),
                         },
                         {
+                            key: "jumlah",
+                            header: "Jumlah",
+                            width: "w-[8%]",
+                            cellClassName: "whitespace-nowrap",
+                            render: (item) => (
+                                <div className="font-semibold text-slate-700">{item.quantity} Unit</div>
+                            ),
+                        },
+                        {
                             key: "lokasi",
-                            header: "Lokasi",
+                            header: "Tempat Penyimpanan",
                             width: "w-[15%]",
                             cellClassName: "whitespace-nowrap text-slate-600 font-medium",
                             render: (item) => item.location || <span className="text-slate-400 italic">Belum diatur</span>,
                         },
                         {
+                            key: "sumber",
+                            header: "Sumber Perolehan",
+                            width: "w-[15%]",
+                            cellClassName: "whitespace-nowrap text-slate-600",
+                            render: (item) => (
+                                <div>
+                                    <div className="font-semibold text-slate-700 capitalize">{item.source || 'Beli'}</div>
+                                    {item.source_details && (
+                                        <div className="text-xs text-slate-500 mt-0.5 truncate max-w-[120px]" title={item.source_details}>
+                                            {item.source_details}
+                                        </div>
+                                    )}
+                                </div>
+                            ),
+                        },
+                        {
+                            key: "tanggal",
+                            header: "Tanggal",
+                            width: "w-[10%]",
+                            cellClassName: "text-slate-600 text-sm whitespace-nowrap",
+                            render: (item) => (
+                                <div className="font-medium">
+                                    {new Date(item.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                                </div>
+                            ),
+                        },
+                        {
                             key: "keterangan",
                             header: "Keterangan",
-                            width: "w-[15%]",
-                            cellClassName: "max-w-xs truncate text-slate-600",
-                            render: (item) => item.notes || "-",
+                            width: "w-[10%]",
+                            cellClassName: "text-slate-600 text-xs",
+                            render: (item) => (
+                                <div className="truncate max-w-[120px]" title={item.notes || ""}>
+                                    {item.notes || "-"}
+                                </div>
+                            ),
                         },
                         {
                             key: "aksi",
                             header: "Aksi",
-                            width: "w-[10%]",
+                            width: "w-[5%]",
                             headerClassName: "text-right",
                             cellClassName: "whitespace-nowrap text-right",
                             render: (item) => (

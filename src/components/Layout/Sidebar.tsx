@@ -155,7 +155,7 @@ export default function Sidebar({ auth, url }: SidebarProps) {
           key={item.href}
           to={item.href}
           className={`block px-3 py-2 text-sm rounded-lg transition-colors relative z-10 ${
-            url === item.href || (item.href !== "/tromol" && active) 
+            url === item.href || (item.href !== "/tromol" && active)
               ? "text-emerald-700 font-semibold"
               : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
           }`}
@@ -201,7 +201,8 @@ export default function Sidebar({ auth, url }: SidebarProps) {
   };
 
   return (
-    <aside className="flex flex-col z-10 w-72 bg-white my-4 ml-4 rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden shrink-0">
+    <aside className="flex flex-col z-10 w-72 bg-white my-4 ml-4 h-[calc(100%-2rem)] rounded-2xl shadow-sm border border-slate-200/50 overflow-hidden shrink-0">
+
       {/* Logo Area */}
       <div className="h-20 flex items-center px-6 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-3">
@@ -217,7 +218,7 @@ export default function Sidebar({ auth, url }: SidebarProps) {
       </div>
 
       {/* Main Menus */}
-      <nav className="flex-1 flex flex-col overflow-y-auto py-6 px-4 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
+      <nav className="flex-1 min-h-0 flex flex-col overflow-y-auto py-6 px-4 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
         {MENUS.map((menu) => {
           if (!hasRole(menu.roles)) return null;
 
@@ -269,7 +270,7 @@ export default function Sidebar({ auth, url }: SidebarProps) {
                       {menu.title}
                     </div>
                   )}
-                  
+
                   <div className="p-1 -mr-1 rounded-md transition-colors">
                     <ChevronRight
                       className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${

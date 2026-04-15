@@ -44,7 +44,7 @@ export default function TopHeader({
                         )}
 
                         <div
-                            className="relative z-50 flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-lg transition-colors -mr-2"
+                            className="relative z-50 flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-colors -mr-2"
                             onClick={() => setIsProfileOpen(!isProfileOpen)}
                         >
                             <div className="block text-right">
@@ -62,14 +62,14 @@ export default function TopHeader({
 
                         {/* Dropdown Menu Logout */}
                         <div
-                            className={`absolute right-0 top-[110%] w-48 bg-white rounded-xl shadow-lg border border-slate-100 transition-all duration-200 z-50 ${
+                            className={`absolute right-0 top-[110%] w-48 bg-white rounded-2xl shadow-lg border border-slate-100 transition-all duration-200 z-50 ${
                                 isProfileOpen
                                     ? "opacity-100 visible translate-y-0"
                                     : "opacity-0 invisible -translate-y-2"
                             }`}
                         >
                             <div className="p-2">
-                                <button onClick={logout} className="w-full flex items-center px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors text-left">
+                                <button onClick={logout} className="w-full flex items-center px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-2xl transition-colors text-left">
                                     <LogOut size={16} className="mr-3" />
                                     Keluar
                                 </button>

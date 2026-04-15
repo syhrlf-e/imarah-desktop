@@ -6,11 +6,14 @@ import CustomSelect from "@/components/CustomSelect";
 import RupiahInput from "@/components/RupiahInput";
 import FormActions from "@/components/FormActions";
 
-const CATEGORY_OPTIONS = [
+const CATEGORY_OPTIONS_IN = [
     { value: "zakat_fitrah", label: "Zakat Fitrah" },
     { value: "zakat_maal", label: "Zakat Maal" },
     { value: "infaq", label: "Infaq / Sedekah" },
     { value: "infaq_tromol", label: "Infaq Tromol" },
+];
+
+const CATEGORY_OPTIONS_OUT = [
     { value: "operasional", label: "Operasional" },
     { value: "gaji", label: "Gaji" },
     { value: "lainnya", label: "Lainnya" },
@@ -45,7 +48,16 @@ export default function KasFormModal({ isOpen, onClose }: KasFormModalProps) {
         }
     }, [isOpen]);
 
-    const setFormData = (key: string, value: any) => setFormDataForm(prev => ({ ...prev, [key]: value }));
+    const setFormData = (key: string, value: any) => {
+        setFormDataForm(prev => {
+            const newData = { ...prev, [key]: value };
+            if (key === "type") {
+                newData.category = value === "in" ? "infaq" : "operasional";
+            }
+            return newData;
+        });
+    };
+
     const setError = (key: string, msg: string) => setErrors(prev => ({ ...prev, [key]: msg }));
     const clearErrors = (...keys: string[]) => setErrors(prev => {
         const next = { ...prev };
@@ -83,9 +95,16 @@ export default function KasFormModal({ isOpen, onClose }: KasFormModalProps) {
         } catch (error: any) {
             const errData = error?.response?.data;
             if (errData?.errors) {
-                Object.entries(errData.errors).forEach(([key, msgs]) =>
-                    setError(key, (msgs as string[])[0])
-                );
+                const keyMap: Record<string, string> = {
+                    direction: "type",
+                    fund_id: "category",
+                    expense_category_id: "category",
+                    payment_channel_id: "payment_method"
+                };
+                Object.entries(errData.errors).forEach(([key, msgs]) => {
+                    const mappedKey = keyMap[key] || key;
+                    setError(mappedKey, (msgs as string[])[0]);
+                });
             } else {
                 setError("amount", errData?.message ?? "Gagal menyimpan transaksi.");
             }
@@ -178,7 +197,7 @@ export default function KasFormModal({ isOpen, onClose }: KasFormModalProps) {
                             <CustomSelect
                                 value={formData.category}
                                 onChange={(val) => setFormData("category", val)}
-                                options={CATEGORY_OPTIONS}
+                                options={formData.type === "in" ? CATEGORY_OPTIONS_IN : CATEGORY_OPTIONS_OUT}
                             />
                             {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
                         </div>

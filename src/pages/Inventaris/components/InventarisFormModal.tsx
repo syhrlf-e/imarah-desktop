@@ -5,10 +5,14 @@ import { useInventarisMutation } from "@/hooks/api/useInventaris";
 
 interface InventoryItem {
     id: string;
+    item_code: string | null;
     item_name: string;
+    category: "aset" | "habis_pakai";
     quantity: number;
     condition: "baik" | "rusak_ringan" | "rusak_berat";
     location: string | null;
+    source: "beli" | "wakaf" | "hibah";
+    source_details: string | null;
     notes: string | null;
 }
 
@@ -111,24 +115,57 @@ export default function InventarisFormModal({ isOpen, onClose, editingItem }: In
                         </div>
                     )}
                     <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                Nama Barang *
-                            </label>
-                            <input
-                                type="text"
-                                value={data.item_name}
-                                onChange={(e) => {
-                                    const sanitized = e.target.value.replace(/[<>()[\]{}]/g, "");
-                                    setData("item_name", sanitized);
-                                }}
-                                className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm"
-                                placeholder="Misal: Kipas Angin Dinding"
-                                required
-                            />
-                            {errors.item_name && <p className="text-red-500 text-xs mt-1">{errors.item_name}</p>}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="sm:col-span-1">
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Kode Barang
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.item_code}
+                                    onChange={(e) => {
+                                        const sanitized = e.target.value.replace(/[<>()[\]{}]/g, "");
+                                        setData("item_code", sanitized);
+                                    }}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm"
+                                    placeholder="Contoh: INV-001"
+                                />
+                                {errors.item_code && <p className="text-red-500 text-xs mt-1">{errors.item_code}</p>}
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Nama Barang *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.item_name}
+                                    onChange={(e) => {
+                                        const sanitized = e.target.value.replace(/[<>()[\]{}]/g, "");
+                                        setData("item_name", sanitized);
+                                    }}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm"
+                                    placeholder="Misal: Kipas Angin Dinding"
+                                    required
+                                />
+                                {errors.item_name && <p className="text-red-500 text-xs mt-1">{errors.item_name}</p>}
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Kategori *
+                                </label>
+                                <CustomSelect
+                                    value={data.category}
+                                    onChange={(val) => setData("category", val as any)}
+                                    options={[
+                                        { value: "aset", label: "Aset Tetap" },
+                                        { value: "habis_pakai", label: "Habis Pakai" },
+                                    ]}
+                                />
+                                {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
+                            </div>
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                                     Jumlah *
@@ -167,6 +204,40 @@ export default function InventarisFormModal({ isOpen, onClose, editingItem }: In
                                     ]}
                                 />
                                 {errors.condition && <p className="text-red-500 text-xs mt-1">{errors.condition}</p>}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Sumber *
+                                </label>
+                                <CustomSelect
+                                    value={data.source}
+                                    onChange={(val) => setData("source", val as any)}
+                                    options={[
+                                        { value: "beli", label: "Beli / Kas" },
+                                        { value: "wakaf", label: "Wakaf" },
+                                        { value: "hibah", label: "Hibah / Sumbangan" },
+                                    ]}
+                                />
+                                {errors.source && <p className="text-red-500 text-xs mt-1">{errors.source}</p>}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                    Keterangan Sumber
+                                </label>
+                                <input
+                                    type="text"
+                                    value={data.source_details}
+                                    onChange={(e) => {
+                                        const sanitized = e.target.value.replace(/[<>()[\]{}]/g, "");
+                                        setData("source_details", sanitized);
+                                    }}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm"
+                                    placeholder="Misal: Bp. H. Fulan"
+                                />
+                                {errors.source_details && <p className="text-red-500 text-xs mt-1">{errors.source_details}</p>}
                             </div>
                         </div>
                         <div>

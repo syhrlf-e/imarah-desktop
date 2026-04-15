@@ -58,14 +58,13 @@ export default function TromolIndex() {
                 title="Kotak Tromol & Amal"
                 description="Daftar dan status kotak tromol fisik maupun QRIS digital."
             >
-                <PrimaryButton
-                    className="!py-2.5 font-medium cursor-not-allowed hidden-sm h-11"
+                <button
+                    className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center disabled:opacity-50 hidden-sm h-11"
                     title="Fitur akan datang"
                     disabled
                 >
-                    <Plus className="w-5 h-5" />
                     Tambah Kotak Tromol
-                </PrimaryButton>
+                </button>
             </PageHeader>
 
             <FilterBar
@@ -175,13 +174,14 @@ export default function TromolIndex() {
 
                             <div className="mt-6 flex flex-col flex-row gap-3">
                                 {box.status === "active" && (
-                                    <a
-                                        href={box.signed_url || "#"}
+                                    <Link
+                                        to="/tromol/input"
+                                        state={{ tromolBox: box }}
                                         className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-emerald-50 text-emerald-700 font-medium rounded-xl hover:bg-emerald-100 transition-colors border border-emerald-100"
                                     >
                                         <QrCode className="w-4 h-4 mr-2" />
-                                        Scan QR
-                                    </a>
+                                        Input Uang
+                                    </Link>
                                 )}
                                 <Link
                                     to="/tromol/history"

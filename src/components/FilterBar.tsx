@@ -19,7 +19,7 @@ export default function FilterBar({
     children,
 }: FilterBarProps) {
     return (
-        <div className="mb-2 relative z-30 bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
+        <div className="mb-2 relative z-30 bg-white rounded-3xl shadow-sm border border-slate-200 p-3 md:p-4">
             <div className="grid grid-cols-[1fr_auto] md:flex md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
                 {/* Search Bar */}
                 <div className="relative order-1 md:flex-1">
@@ -30,7 +30,7 @@ export default function FilterBar({
                         type="text"
                         value={searchValue}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="block w-full pl-10 pr-3 py-2.5 md:py-2.5 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm transition-colors shadow-sm"
+                        className="block w-full pl-10 pr-3 py-2.5 md:py-2.5 border border-slate-200 rounded-2xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 text-sm transition-colors shadow-sm"
                         placeholder={searchPlaceholder}
                     />
                 </div>

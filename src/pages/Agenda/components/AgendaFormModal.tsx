@@ -19,6 +19,8 @@ interface Agenda {
     end_time: string | null;
     location: string | null;
     type: "kajian" | "rapat" | "kegiatan_sosial" | "lainnya";
+    speaker_name: string | null;
+    status: "terjadwal" | "berlangsung" | "selesai" | "batal";
     created_at: string;
     creator?: User;
 }
@@ -162,6 +164,16 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
                             <InputError message={errors.title} className="mt-1" />
                         </div>
 
+                        <div>
+                            <InputLabel value="Nama Pemateri / Pengisi" className="mb-1.5" />
+                            <TextInput
+                                value={data.speaker_name}
+                                onChange={(e) => setData("speaker_name", e.target.value)}
+                                placeholder="Contoh: Ustadz Syafiq Riza / KH. Abdullah Gymnastiar"
+                            />
+                            <InputError message={errors.speaker_name} className="mt-1" />
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <InputLabel value="Waktu Mulai *" className="mb-1.5" />
@@ -188,7 +200,7 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <InputLabel value="Tipe Kegiatan *" className="mb-1.5" />
                                 <CustomSelect
@@ -204,11 +216,25 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
                                 <InputError message={errors.type} className="mt-1" />
                             </div>
                             <div>
+                                <InputLabel value="Status *" className="mb-1.5" />
+                                <CustomSelect
+                                    value={data.status}
+                                    onChange={(val) => setData("status", val as any)}
+                                    options={[
+                                        { value: "terjadwal", label: "Terjadwal" },
+                                        { value: "berlangsung", label: "Sedang Berlangsung" },
+                                        { value: "selesai", label: "Selesai" },
+                                        { value: "batal", label: "Dibatalkan" },
+                                    ]}
+                                />
+                                <InputError message={errors.status} className="mt-1" />
+                            </div>
+                            <div>
                                 <InputLabel value="Lokasi" className="mb-1.5" />
                                 <TextInput
                                     value={data.location}
                                     onChange={(e) => setData("location", e.target.value)}
-                                    placeholder="Contoh: Masjid Utama / Zoom"
+                                    placeholder="Contoh: Masjid Utama"
                                 />
                                 <InputError message={errors.location} className="mt-1" />
                             </div>

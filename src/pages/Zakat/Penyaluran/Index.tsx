@@ -211,13 +211,12 @@ export default function PenyaluranIndex() {
                         {canCreate && (
                             <>
                                 <div className="h-6 w-px bg-slate-200 mx-1" />
-                                <PrimaryButton
+                                <button
                                     onClick={() => setIsFormOpen(true)}
-                                    className="!py-2.5 font-semibold shadow-sm active:scale-95 transition-all"
+                                    className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer"
                                 >
-                                    <Plus className="w-5 h-5 mr-1" />
                                     Catat Penyaluran Zakat
-                                </PrimaryButton>
+                                </button>
                             </>
                         )}
                     </div>

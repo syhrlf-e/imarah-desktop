@@ -58,7 +58,7 @@ export default function App() {
         <AuthProvider>
           <BrowserRouter>
             <Titlebar />
-            <div className="pt-9 h-screen w-screen overflow-hidden bg-slate-50">
+            <div className="pt-9 h-[100dvh] w-screen box-border overflow-hidden bg-slate-50">
               <Routes>
                 {/* ── Guest routes ── */}
                 <Route path="/" element={<Navigate to="/login" replace />} />

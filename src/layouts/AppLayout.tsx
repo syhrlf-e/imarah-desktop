@@ -79,7 +79,7 @@ export default function AppLayout({ title, children }: Props) {
   // Native Desktop Logic: Intercept Window Close untuk logout aman
   useEffect(() => {
     let unlistenFn: (() => void) | undefined;
-    
+
     const setupCloseHook = async () => {
         try {
             // Kita bypass SSR import dengan dinamis
@@ -94,7 +94,7 @@ export default function AppLayout({ title, children }: Props) {
                         console.error('Logout signal API gagal, memotong lokal.');
                     }
                     // Setelah berurusan dengan API, baru kita matikan paksa process Tauri
-                    getCurrentWindow().destroy(); 
+                    getCurrentWindow().destroy();
                 }
             });
             unlistenFn = unlisten;
@@ -144,7 +144,8 @@ export default function AppLayout({ title, children }: Props) {
   };
 
   return (
-    <div className="h-screen bg-slate-50 font-sans flex text-slate-900 overflow-hidden text-sm">
+    <div className="h-full bg-slate-50 font-sans flex items-stretch text-slate-900 overflow-hidden text-sm">
+
 
       {/* Login Reject Toast */}
       <AnimatePresence>
@@ -183,7 +184,7 @@ export default function AppLayout({ title, children }: Props) {
         toggleSidebar={toggleSidebar}
       />
 
-      <main className="flex-1 flex flex-col h-[100dvh] overflow-hidden relative bg-slate-50">
+      <main className="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50">
         <TopHeader auth={auth} title={title} toggleSidebar={toggleSidebar} />
 
         <div className="flex-1 overflow-x-hidden overflow-y-auto px-4 pt-2 pb-28 p-6 scrollbar-default relative flex flex-col">

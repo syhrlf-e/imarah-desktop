@@ -4,7 +4,7 @@ import { TromolBox } from "@/types";
 import { Box, CheckCircle, ArrowRight, RefreshCw } from "lucide-react";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 interface Props {
     tromolBox?: TromolBox;
@@ -14,7 +14,8 @@ const DEFAULT_BOX: TromolBox = { id: '', name: 'Kotak Tromol', qr_code: '', loca
 
 export default function TromolInput({ tromolBox: boxProp }: Props) {
     const { user } = useAuth();
-    const tromolBox = boxProp ?? DEFAULT_BOX;
+    const location = useLocation();
+    const tromolBox = boxProp ?? location.state?.tromolBox ?? DEFAULT_BOX;
     const [data, setData] = useState({ amount: 0 });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [processing, setProcessing] = useState(false);
