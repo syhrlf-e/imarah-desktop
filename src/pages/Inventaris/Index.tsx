@@ -20,7 +20,7 @@ import PageHeader from "@/components/PageHeader";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 import PrimaryButton from "@/components/PrimaryButton";
 import { motion, AnimatePresence } from "framer-motion";
-import InventarisFormModal from "./components/InventarisFormModal";
+import InventarisFormPanel from "./components/InventarisFormPanel";
 
 interface User {
     id: string;
@@ -431,7 +431,7 @@ export default function InventarisIndex() {
                 </div>
             </div>
 
-            <InventarisFormModal
+            <InventarisFormPanel
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 editingItem={editingItem}

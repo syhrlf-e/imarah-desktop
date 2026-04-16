@@ -1,33 +1,90 @@
+import type { ReactNode } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
-export function RequireAuth() {
+type GuardProps = {
+  children: ReactNode;
+};
+
+type RoleGuardProps = GuardProps & {
+  roles: string[];
+};
+
+function AuthLoadingScreen() {
+  return (
+    <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
+        <p className="text-sm font-medium text-slate-500">Memuat...</p>
+      </div>
+    </div>
+  );
+}
+
+function GuestGuard({ children }: GuardProps) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-slate-500 font-medium">Memuat...</p>
-        </div>
-      </div>
-    );
+    return <AuthLoadingScreen />;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function UserGuard({ children }: GuardProps) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <AuthLoadingScreen />;
   }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  return <Outlet />;
+  return <>{children}</>;
 }
 
-export function RequireRole({ roles }: { roles: string[] }) {
-  const { user } = useAuth();
+function RoleGuard({ roles, children }: RoleGuardProps) {
+  const { user, loading } = useAuth();
 
-  if (!user || !roles.includes(user.role)) {
+  if (loading) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!roles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Outlet />;
+  return <>{children}</>;
 }
+
+export function RequireAuth() {
+  return (
+    <UserGuard>
+      <Outlet />
+    </UserGuard>
+  );
+}
+
+export function RequireRole({ roles }: { roles: string[] }) {
+  return (
+    <RoleGuard roles={roles}>
+      <Outlet />
+    </RoleGuard>
+  );
+}
+
+export const AuthGuards = {
+  GuestGuard,
+  UserGuard,
+  RoleGuard,
+};

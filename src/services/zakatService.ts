@@ -11,8 +11,13 @@ export interface PaginatedData<T> {
 export interface Muzakki {
   id: string;
   name: string;
-  phone: string;
-  address: string | null;
+  jenis_kelamin: "L" | "P";
+  jumlah_tanggungan: number;
+  phone: string | null;
+  alamat: string | null;
+  rt: string | null;
+  rw: string | null;
+  is_active: boolean | number;
   created_at?: string;
 }
 
@@ -25,37 +30,21 @@ export interface Mustahiq {
   created_at?: string;
 }
 
-export interface ZakatPenerimaan {
-  id: string;
-  donatur_name: string;
-  category: string;
-  amount: number;
-  payment_method: string;
-  notes: string | null;
-  status: string;
-  created_at: string;
-}
-
-export interface ZakatPenyaluran {
-  id: string;
-  mustahiq_name: string;
-  type: string;
-  amount: number;
-  notes: string | null;
-  date: string;
-  created_at: string;
-}
-
 // ── Muzakki Service ───────────────────────────────
 export const getMuzakkis = async (params?: string) => {
   const query = params ? `?${params}` : "";
   const res = await api.get(`/zakat/muzakki${query}`);
-  // Return format laravel pagination atau data lurus
   return res.data?.data?.data ? res.data.data : res.data;
 };
 
 export const createMuzakki = async (data: Partial<Muzakki>) => {
   const res = await api.post("/zakat/muzakki", data);
+  return res.data;
+};
+
+export const updateMuzakki = async (data: Partial<Muzakki> & { id: string }) => {
+  const { id, ...payload } = data;
+  const res = await api.put(`/zakat/muzakki/${id}`, payload);
   return res.data;
 };
 
@@ -73,6 +62,12 @@ export const getMustahiqs = async (params?: string) => {
 
 export const createMustahiq = async (data: Partial<Mustahiq>) => {
   const res = await api.post("/zakat/mustahiq", data);
+  return res.data;
+};
+
+export const updateMustahiq = async (data: Partial<Mustahiq> & { id: string }) => {
+  const { id, ...payload } = data;
+  const res = await api.put(`/zakat/mustahiq/${id}`, payload);
   return res.data;
 };
 

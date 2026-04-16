@@ -58,7 +58,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function FinancialChart({ data, loading }: FinancialChartProps) {
     return (
-        <WidgetContainer className="flex p-6 flex-col flex-1 min-h-0">
+        <WidgetContainer className="flex min-h-0 min-w-0 flex-1 flex-col p-6">
             <div className="flex justify-between items-center mb-4 shrink-0">
                 <div>
                     <h2 className="text-lg font-bold text-slate-800 flex items-center">
@@ -71,14 +71,13 @@ export default function FinancialChart({ data, loading }: FinancialChartProps) {
                 </div>
             </div>
 
-            <div className="flex-1 w-full min-h-[250px]">
+            <div className="h-[320px] w-full min-w-0 md:h-[360px]">
                 {loading ? (
                     <div className="w-full h-full bg-slate-100/50 animate-pulse rounded-xl"></div>
                 ) : (
                     <ResponsiveContainer
                         width="100%"
                         height="100%"
-                        minHeight={250}
                     >
                         <AreaChart
                             data={data}

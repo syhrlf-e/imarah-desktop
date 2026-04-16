@@ -49,7 +49,6 @@ export default function AppLayout({ title, children }: Props) {
 
       <Sidebar
         auth={auth}
-        url={url}
         isSidebarOpen={isSidebarOpen}
         toggleSidebar={toggleSidebar}
       />

@@ -57,7 +57,7 @@ export default function CustomSelect({
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                className={`relative flex items-center justify-between w-full px-4 py-2.5 bg-white border font-medium text-sm rounded-xl transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`relative flex items-center justify-between w-full px-4 py-2.5 bg-white border font-medium text-sm rounded-2xl transition-colors shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                     error
                         ? "border-red-500 text-red-700 ring-1 ring-red-500/50"
                         : "border-slate-200 text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
@@ -80,7 +80,7 @@ export default function CustomSelect({
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute left-0 mt-2 w-full min-w-[200px] bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden z-[90] p-1"
+                        className="absolute left-0 mt-2 w-full min-w-[200px] bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden z-[90] p-1"
                     >
                         <div className="max-h-[250px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                             {options.map((opt) => (

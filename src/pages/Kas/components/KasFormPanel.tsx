@@ -30,8 +30,8 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
     const { store } = useKasMutation();
 
     const [formData, setFormDataForm] = useState({
-        type: "in" as "in" | "out",
-        category: "infaq",
+        type: "" as "in" | "out" | "",
+        category: "",
         amount: 0,
         payment_method: "tunai",
         notes: "",
@@ -41,7 +41,7 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
 
     useEffect(() => {
         if (isOpen) {
-            setFormDataForm({ type: "in", category: "infaq", amount: 0, payment_method: "tunai", notes: "" });
+            setFormDataForm({ type: "", category: "", amount: 0, payment_method: "tunai", notes: "" });
             setErrors({});
             setProcessing(false);
         }
@@ -51,7 +51,8 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
         setFormDataForm(prev => {
             const newData = { ...prev, [key]: value };
             if (key === "type") {
-                newData.category = value === "in" ? "infaq" : "operasional";
+                // Reset category when type changes
+                newData.category = "";
             }
             return newData;
         });
@@ -80,6 +81,15 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
             setError("amount", "Nominal harus lebih dari 0");
             return;
         }
+        if (!formData.type) {
+            setError("type", "Jenis transaksi harus dipilih");
+            return;
+        }
+        if (!formData.category) {
+            setError("category", "Kategori harus dipilih");
+            return;
+        }
+
 
         setProcessing(true);
         try {
@@ -121,7 +131,7 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="fixed inset-0 top-[36px] h-[calc(100vh-36px)] bg-slate-900/50 backdrop-blur-sm z-40"
+                        className="fixed inset-0 top-[36px] bg-slate-900/30 backdrop-blur-[2px] z-40"
                         onClick={onClose}
                     ></motion.div>
 
@@ -130,7 +140,7 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
                         transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="fixed top-[36px] right-0 h-[calc(100vh-36px)] bg-white w-[480px] shadow-2xl flex flex-col z-50 rounded-tl-2xl rounded-bl-2xl border-l border-slate-200"
+                        className="fixed top-[48px] right-0 bottom-4 bg-white w-[560px] shadow-2xl flex flex-col z-50 rounded-tl-2xl rounded-bl-2xl border-l border-slate-200"
                     >
                         <div className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-4 shrink-0 bg-white z-10 rounded-tl-2xl">
                             <button
@@ -146,7 +156,6 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
 
                         <div className="p-5 sm:p-6 pb-safe flex-1 overflow-y-auto bg-white min-h-0">
                             <form id="kas-form" onSubmit={submitAdd} className="space-y-4 sm:space-y-5">
-                                {/* Form content remains the same */}
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                                         Jenis Transaksi *
@@ -155,16 +164,16 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
                                         <button
                                             type="button"
                                             onClick={() => setFormData("type", "in")}
-                                            className={`py-2.5 px-4 rounded-xl border text-sm font-medium flex items-center justify-center transition-all ${formData.type === "in" ? "bg-emerald-50 border-emerald-500 text-emerald-700 ring-1 ring-emerald-500" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                                            className={`py-2.5 px-4 rounded-2xl border text-sm font-medium flex items-center justify-center transition-all ${formData.type === "in" ? "bg-emerald-50 border-emerald-500 text-emerald-700 ring-1 ring-emerald-500" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
                                         >
-                                            Pemasukan (+In)
+                                            Pemasukan
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setFormData("type", "out")}
-                                            className={`py-2.5 px-4 rounded-xl border text-sm font-medium flex items-center justify-center transition-all ${formData.type === "out" ? "bg-red-50 border-red-500 text-red-700 ring-1 ring-red-500" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                                            className={`py-2.5 px-4 rounded-2xl border text-sm font-medium flex items-center justify-center transition-all ${formData.type === "out" ? "bg-red-50 border-red-500 text-red-700 ring-1 ring-red-500" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
                                         >
-                                            Pengeluaran (-Out)
+                                            Pengeluaran
                                         </button>
                                     </div>
                                     {errors.type && <p className="mt-1 text-xs text-red-500">{errors.type}</p>}
@@ -177,46 +186,52 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
                                     <CustomSelect
                                         value={formData.category}
                                         onChange={(val) => setFormData("category", val)}
-                                        options={formData.type === "in" ? CATEGORY_OPTIONS_IN : CATEGORY_OPTIONS_OUT}
+                                        options={formData.type ? (formData.type === 'in' ? CATEGORY_OPTIONS_IN : CATEGORY_OPTIONS_OUT) : []}
+                                        disabled={!formData.type}
+                                        placeholder="Pilih Jenis Transaksi Dahulu"
                                     />
                                     {errors.category && <p className="mt-1 text-xs text-red-500">{errors.category}</p>}
                                 </div>
 
-                                <div>
-                                    <label className={`block text-sm font-semibold mb-1.5 ${errors.amount ? "text-red-500" : "text-slate-700"}`}>
-                                        Nominal (Rp) *
-                                    </label>
-                                    <RupiahInput
-                                        value={formData.amount}
-                                        onValueChange={handleAmountChange}
-                                        isError={!!errors.amount}
-                                    />
-                                    <div className="flex justify-between items-start mt-1">
-                                        {errors.amount ? (
-                                            <p className="text-xs text-red-500">{errors.amount}</p>
-                                        ) : (
-                                            <div></div>
-                                        )}
-                                        <p className={`text-xs font-medium ${errors.amount ? "text-red-500" : "text-slate-400"}`}>
-                                            *maks Rp. 999.999.999
-                                        </p>
+                                <div className="grid grid-cols-2 gap-5">
+                                    <div>
+                                        <label className={`block text-sm font-semibold mb-1.5 ${errors.amount ? "text-red-500" : "text-slate-700"}`}>
+                                            Nominal (Rp) *
+                                        </label>
+                                        <RupiahInput
+                                            value={formData.amount}
+                                            onValueChange={handleAmountChange}
+                                            isError={!!errors.amount}
+                                            disabled={!formData.type}
+                                        />
+                                        <div className="flex justify-between items-start mt-1">
+                                            {errors.amount ? (
+                                                <p className="text-xs text-red-500">{errors.amount}</p>
+                                            ) : (
+                                                <div></div>
+                                            )}
+                                            <p className={`text-xs font-medium ${errors.amount ? "text-red-500" : "text-slate-400"}`}>
+                                                *maks Rp. 999.999.999
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                                        Metode Pembayaran
-                                    </label>
-                                    <CustomSelect
-                                        value={formData.payment_method}
-                                        onChange={(val) => setFormData("payment_method", val)}
-                                        options={[
-                                            { value: "tunai", label: "Tunai" },
-                                            { value: "transfer", label: "Transfer Bank" },
-                                            { value: "qris", label: "QRIS" },
-                                        ]}
-                                    />
-                                    {errors.payment_method && <p className="mt-1 text-xs text-red-500">{errors.payment_method}</p>}
+                                    <div>
+                                        <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                                            Metode Pembayaran
+                                        </label>
+                                        <CustomSelect
+                                            value={formData.payment_method}
+                                            onChange={(val) => setFormData("payment_method", val)}
+                                            options={[
+                                                { value: "tunai", label: "Tunai" },
+                                                { value: "transfer", label: "Transfer Bank" },
+                                                { value: "qris", label: "QRIS" },
+                                            ]}
+                                            disabled={!formData.type}
+                                        />
+                                        {errors.payment_method && <p className="mt-1 text-xs text-red-500">{errors.payment_method}</p>}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -230,9 +245,10 @@ export default function KasFormPanel({ isOpen, onClose }: KasFormPanelProps) {
                                             const sanitizedValue = e.target.value.replace(/[<>()[\]{}]/g, "");
                                             setFormData("notes", sanitizedValue);
                                         }}
-                                        className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm resize-none"
+                                        className="w-full px-3 py-2 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 text-sm shadow-sm resize-none disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed"
                                         rows={3}
                                         placeholder="Contoh: Infaq Hamba Allah, Bayar Listrik Bulan Juni"
+                                        disabled={!formData.type}
                                     ></textarea>
                                     {errors.notes && <p className="mt-1 text-xs text-red-500">{errors.notes}</p>}
                                 </div>

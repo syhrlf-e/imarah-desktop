@@ -10,11 +10,11 @@ export const useMuzakkiData = (params?: string) => {
   });
 };
 
-export const useMuzakkiMutation = () => {
+export const useMuzakkiMutation = (id?: string) => {
   const queryClient = useQueryClient();
 
-  const create = useMutation({
-    mutationFn: zakatService.createMuzakki,
+  const store = useMutation({
+    mutationFn: (data: any) => zakatService.createMuzakki(data),
     onSuccess: async () => {
       toast.success("Muzakki berhasil ditambahkan!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_muzakkis"] });
@@ -24,8 +24,19 @@ export const useMuzakkiMutation = () => {
     },
   });
 
+  const update = useMutation({
+    mutationFn: (data: any) => zakatService.updateMuzakki({ ...data, id: id! }),
+    onSuccess: async () => {
+      toast.success("Data Muzakki berhasil diperbarui!");
+      await queryClient.invalidateQueries({ queryKey: ["zakat_muzakkis"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Gagal memperbarui data");
+    },
+  });
+
   const remove = useMutation({
-    mutationFn: zakatService.deleteMuzakki,
+    mutationFn: (id: string) => zakatService.deleteMuzakki(id),
     onSuccess: async () => {
       toast.success("Muzakki berhasil dihapus!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_muzakkis"] });
@@ -33,10 +44,10 @@ export const useMuzakkiMutation = () => {
     onError: () => toast.error("Gagal menghapus Muzakki"),
   });
 
-  return { create, remove };
+  return { store, update, remove };
 };
 
-// ── Mustahiq Hooks ─────────────────────────────────────────
+// ── Mustahiq Hooks ──────────────────────────────────────────
 export const useMustahiqData = (params?: string) => {
   return useQuery({
     queryKey: ["zakat_mustahiqs", params],
@@ -44,11 +55,11 @@ export const useMustahiqData = (params?: string) => {
   });
 };
 
-export const useMustahiqMutation = () => {
+export const useMustahiqMutation = (id?: string) => {
   const queryClient = useQueryClient();
 
-  const create = useMutation({
-    mutationFn: zakatService.createMustahiq,
+  const store = useMutation({
+    mutationFn: (data: any) => zakatService.createMustahiq(data),
     onSuccess: async () => {
       toast.success("Mustahiq berhasil ditambahkan!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_mustahiqs"] });
@@ -58,8 +69,19 @@ export const useMustahiqMutation = () => {
     },
   });
 
+  const update = useMutation({
+    mutationFn: (data: any) => zakatService.updateMustahiq({ ...data, id: id! }),
+    onSuccess: async () => {
+      toast.success("Data Mustahiq berhasil diperbarui!");
+      await queryClient.invalidateQueries({ queryKey: ["zakat_mustahiqs"] });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Gagal memperbarui data");
+    },
+  });
+
   const remove = useMutation({
-    mutationFn: zakatService.deleteMustahiq,
+    mutationFn: (id: string) => zakatService.deleteMustahiq(id),
     onSuccess: async () => {
       toast.success("Mustahiq berhasil dihapus!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_mustahiqs"] });
@@ -67,10 +89,10 @@ export const useMustahiqMutation = () => {
     onError: () => toast.error("Gagal menghapus Mustahiq"),
   });
 
-  return { create, remove };
+  return { store, update, remove };
 };
 
-// ── Penerimaan Hooks ───────────────────────────────────────
+// ── Penerimaan Hooks ────────────────────────────────────────
 export const usePenerimaanData = (params?: string) => {
   return useQuery({
     queryKey: ["zakat_penerimaans", params],
@@ -81,10 +103,10 @@ export const usePenerimaanData = (params?: string) => {
 export const usePenerimaanMutation = () => {
   const queryClient = useQueryClient();
 
-  const create = useMutation({
-    mutationFn: zakatService.createPenerimaan,
+  const store = useMutation({
+    mutationFn: (data: any) => zakatService.createPenerimaan(data),
     onSuccess: async () => {
-      toast.success("Penerimaan Zakat berhasil dicatat!");
+      toast.success("Penerimaan zakat berhasil dicatat!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_penerimaans"] });
     },
     onError: (err: any) => {
@@ -93,18 +115,18 @@ export const usePenerimaanMutation = () => {
   });
 
   const remove = useMutation({
-    mutationFn: zakatService.deletePenerimaan,
+    mutationFn: (id: string) => zakatService.deletePenerimaan(id),
     onSuccess: async () => {
-      toast.success("Catatan penerimaan berhasil dihapus!");
+      toast.success("Penerimaan zakat berhasil dihapus!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_penerimaans"] });
     },
     onError: () => toast.error("Gagal menghapus penerimaan"),
   });
 
-  return { create, remove };
+  return { store, remove };
 };
 
-// ── Penyaluran Hooks ───────────────────────────────────────
+// ── Penyaluran Hooks ────────────────────────────────────────
 export const usePenyaluranData = (params?: string) => {
   return useQuery({
     queryKey: ["zakat_penyalurans", params],
@@ -115,10 +137,10 @@ export const usePenyaluranData = (params?: string) => {
 export const usePenyaluranMutation = () => {
   const queryClient = useQueryClient();
 
-  const create = useMutation({
-    mutationFn: zakatService.createPenyaluran,
+  const store = useMutation({
+    mutationFn: (data: any) => zakatService.createPenyaluran(data),
     onSuccess: async () => {
-      toast.success("Penyaluran Zakat berhasil dicatat!");
+      toast.success("Penyaluran zakat berhasil dicatat!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_penyalurans"] });
     },
     onError: (err: any) => {
@@ -127,13 +149,13 @@ export const usePenyaluranMutation = () => {
   });
 
   const remove = useMutation({
-    mutationFn: zakatService.deletePenyaluran,
+    mutationFn: (id: string) => zakatService.deletePenyaluran(id),
     onSuccess: async () => {
-      toast.success("Catatan penyaluran berhasil dihapus!");
+      toast.success("Penyaluran zakat berhasil dihapus!");
       await queryClient.invalidateQueries({ queryKey: ["zakat_penyalurans"] });
     },
     onError: () => toast.error("Gagal menghapus penyaluran"),
   });
 
-  return { create, remove };
+  return { store, remove };
 };

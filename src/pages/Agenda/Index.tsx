@@ -21,7 +21,7 @@ import PrimaryButton from "@/components/PrimaryButton";
 import DangerButton from "@/components/DangerButton";
 import FilterBar from "@/components/FilterBar";
 import PageHeader from "@/components/PageHeader";
-import AgendaFormModal from "./components/AgendaFormModal";
+import AgendaFormPanel from "./components/AgendaFormPanel";
 
 dayjs.locale("id");
 
@@ -382,7 +382,7 @@ export default function AgendaIndex() {
                 </div>
             </div>
 
-            <AgendaFormModal
+            <AgendaFormPanel
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 editingAgenda={editingAgenda}

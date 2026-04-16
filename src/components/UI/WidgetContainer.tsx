@@ -11,7 +11,7 @@ export default function WidgetContainer({
 }: WidgetContainerProps) {
     return (
         <div
-            className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col ${className}`}
+            className={`min-w-0 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col ${className}`}
         >
             {children}
         </div>
