@@ -254,7 +254,7 @@ export default function InventarisIndex() {
                         {
                             key: "kode_barang",
                             header: "Kode Barang",
-                            width: "w-[12%]",
+                            width: "w-[10%]",
                             cellClassName: "whitespace-nowrap",
                             render: (item) => (
                                 item.item_code ? (
@@ -270,13 +270,15 @@ export default function InventarisIndex() {
                             key: "nama",
                             header: "Nama Barang",
                             width: "w-[15%]",
-                            cellClassName: "whitespace-nowrap",
-                            render: (item) => (
-                                <div>
-                                    <div className="font-bold text-slate-800">{item.item_name}</div>
-                                    <div className="text-xs text-slate-500 mt-0.5 capitalize">{item.category?.replace('_', ' ') || 'Aset'}</div>
-                                </div>
-                            ),
+                            cellClassName: "whitespace-nowrap font-bold text-slate-800",
+                            render: (item) => item.item_name,
+                        },
+                        {
+                            key: "kategori",
+                            header: "Kategori",
+                            width: "w-[10%]",
+                            cellClassName: "whitespace-nowrap text-slate-600 capitalize",
+                            render: (item) => item.category?.replace('_', ' ') || 'Aset',
                         },
                         {
                             key: "kondisi",
@@ -292,7 +294,7 @@ export default function InventarisIndex() {
                         {
                             key: "jumlah",
                             header: "Jumlah",
-                            width: "w-[8%]",
+                            width: "w-[7%]",
                             cellClassName: "whitespace-nowrap",
                             render: (item) => (
                                 <div className="font-semibold text-slate-700">{item.quantity} Unit</div>
@@ -300,15 +302,15 @@ export default function InventarisIndex() {
                         },
                         {
                             key: "lokasi",
-                            header: "Tempat Penyimpanan",
-                            width: "w-[15%]",
+                            header: "Penyimpanan",
+                            width: "w-[13%]",
                             cellClassName: "whitespace-nowrap text-slate-600 font-medium",
                             render: (item) => item.location || <span className="text-slate-400 italic">Belum diatur</span>,
                         },
                         {
                             key: "sumber",
-                            header: "Sumber Perolehan",
-                            width: "w-[15%]",
+                            header: "Sumber",
+                            width: "w-[13%]",
                             cellClassName: "whitespace-nowrap text-slate-600",
                             render: (item) => (
                                 <div>
@@ -329,17 +331,6 @@ export default function InventarisIndex() {
                             render: (item) => (
                                 <div className="font-medium">
                                     {new Date(item.created_at).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                                </div>
-                            ),
-                        },
-                        {
-                            key: "keterangan",
-                            header: "Keterangan",
-                            width: "w-[10%]",
-                            cellClassName: "text-slate-600 text-xs",
-                            render: (item) => (
-                                <div className="truncate max-w-[120px]" title={item.notes || ""}>
-                                    {item.notes || "-"}
                                 </div>
                             ),
                         },
@@ -388,59 +379,57 @@ export default function InventarisIndex() {
             />
 
             {/* Pagination Desktop - Dinamis */}
-            {meta.last_page > 1 && (
-                <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
-                    <span className="text-sm text-slate-500">
-                        <span className="font-semibold text-slate-800">{meta.total}</span> data · Halaman <span className="font-semibold text-slate-800">{meta.current_page}</span> dari <span className="font-semibold text-slate-800">{meta.last_page}</span>
-                    </span>
+            <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
+                <span className="text-sm text-slate-500">
+                    <span className="font-semibold text-slate-800">{meta.total}</span> data · Halaman <span className="font-semibold text-slate-800">{meta.current_page}</span> dari <span className="font-semibold text-slate-800">{meta.last_page}</span>
+                </span>
 
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            type="button"
-                            disabled={meta.current_page <= 1}
-                            onClick={() => handlePageNav(-1)}
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        disabled={meta.current_page <= 1}
+                        onClick={() => handlePageNav(-1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
 
-                        <AnimatePresence mode="popLayout">
-                            {[meta.current_page - 1, meta.current_page, meta.current_page + 1]
-                                .filter((p) => p >= 1 && p <= meta.last_page)
-                                .map((p) => (
-                                    <motion.button
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                        key={p}
-                                        type="button"
-                                        onClick={() => {
-                                            if (p !== meta.current_page) applyFilters({ page: p.toString() });
-                                        }}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
-                                            p === meta.current_page
-                                                ? "bg-green-600 text-white border-green-600 cursor-default"
-                                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                        }`}
-                                    >
-                                        {p}
-                                    </motion.button>
-                                ))}
-                        </AnimatePresence>
+                    <AnimatePresence mode="popLayout">
+                        {[meta.current_page - 1, meta.current_page, meta.current_page + 1]
+                            .filter((p) => p >= 1 && p <= meta.last_page)
+                            .map((p) => (
+                                <motion.button
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.2 }}
+                                    key={p}
+                                    type="button"
+                                    onClick={() => {
+                                        if (p !== meta.current_page) applyFilters({ page: p.toString() });
+                                    }}
+                                    className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
+                                        p === meta.current_page
+                                            ? "bg-green-600 text-white border-green-600 cursor-default"
+                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                    }`}
+                                >
+                                    {p}
+                                </motion.button>
+                            ))}
+                    </AnimatePresence>
 
-                        <button
-                            type="button"
-                            disabled={meta.current_page >= meta.last_page}
-                            onClick={() => handlePageNav(1)}
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        disabled={meta.current_page >= meta.last_page}
+                        onClick={() => handlePageNav(1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
-            )}
+            </div>
 
             <InventarisFormModal
                 isOpen={isAddOpen}

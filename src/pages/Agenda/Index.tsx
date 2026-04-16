@@ -56,9 +56,9 @@ export default function AgendaIndex() {
     const { data: agendaRes, isLoading } = useAgendaData(searchParams.toString());
     const { remove } = useAgendaMutation();
 
-    const data = agendaRes || EMPTY_DATA;
-    const agendaItems: Agenda[] = data.items || [];
-    const meta = data.meta;
+    const agendaData = agendaRes || EMPTY_DATA;
+    const agendaItems: Agenda[] = agendaData.items || [];
+    const meta = agendaData.meta;
 
     const { user } = useAuth();
 
@@ -328,61 +328,59 @@ export default function AgendaIndex() {
                 </div>
             )}
 
-            {meta.last_page > 1 && (
-                <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
-                    <span className="text-sm text-slate-500">
-                        <span className="font-semibold text-slate-800">{meta.total}</span> data{" · Halaman "}
-                        <span className="font-semibold text-slate-800">{meta.current_page}</span> dari{" "}
-                        <span className="font-semibold text-slate-800">{meta.last_page}</span>
-                    </span>
+            <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
+                <span className="text-sm text-slate-500">
+                    <span className="font-semibold text-slate-800">{meta.total}</span> data{" · Halaman "}
+                    <span className="font-semibold text-slate-800">{meta.current_page}</span> dari{" "}
+                    <span className="font-semibold text-slate-800">{meta.last_page}</span>
+                </span>
 
-                    <div className="flex items-center gap-1.5">
-                        <button
-                            type="button"
-                            disabled={meta.current_page <= 1}
-                            onClick={() => handlePageNav(-1)}
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                        </button>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        disabled={meta.current_page <= 1}
+                        onClick={() => handlePageNav(-1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
 
-                        <AnimatePresence mode="popLayout">
-                            {[meta.current_page - 1, meta.current_page, meta.current_page + 1]
-                                .filter((p) => p >= 1 && p <= meta.last_page)
-                                .map((p) => (
-                                    <motion.button
-                                        layout
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ duration: 0.2 }}
-                                        key={p}
-                                        type="button"
-                                        onClick={() => {
-                                            if (p !== meta.current_page) applyFilters({ page: p.toString() });
-                                        }}
-                                        className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
-                                            p === meta.current_page
-                                                ? "bg-green-600 text-white border-green-600 cursor-default"
-                                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                                        }`}
-                                    >
-                                        {p}
-                                    </motion.button>
-                                ))}
-                        </AnimatePresence>
+                    <AnimatePresence mode="popLayout">
+                        {[meta.current_page - 1, meta.current_page, meta.current_page + 1]
+                            .filter((p) => p >= 1 && p <= meta.last_page)
+                            .map((p) => (
+                                <motion.button
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.2 }}
+                                    key={p}
+                                    type="button"
+                                    onClick={() => {
+                                        if (p !== meta.current_page) applyFilters({ page: p.toString() });
+                                    }}
+                                    className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
+                                        p === meta.current_page
+                                            ? "bg-green-600 text-white border-green-600 cursor-default"
+                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                    }`}
+                                >
+                                    {p}
+                                </motion.button>
+                            ))}
+                    </AnimatePresence>
 
-                        <button
-                            type="button"
-                            disabled={meta.current_page >= meta.last_page}
-                            onClick={() => handlePageNav(1)}
-                            className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                        >
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        disabled={meta.current_page >= meta.last_page}
+                        onClick={() => handlePageNav(1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
-            )}
+            </div>
 
             <AgendaFormModal
                 isOpen={isAddOpen}

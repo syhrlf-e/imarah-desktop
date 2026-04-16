@@ -36,7 +36,7 @@ import PageHeader from "@/components/PageHeader";
 import KasSummaryCards from "@/components/KasSummaryCards";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 import PrimaryButton from "@/components/PrimaryButton";
-import KasFormModal from "./components/KasFormModal";
+import KasFormPanel from "./components/KasFormPanel";
 
 const CATEGORY_OPTIONS_IN = [
     { value: "zakat_fitrah", label: "Zakat Fitrah" },
@@ -88,21 +88,19 @@ export default function KasIndex({
     const { data: kasData, isLoading: loadingKas, isFetching: fetchingKas } = useKasTransactions(searchParams.toString());
     const { store, verify, remove } = useKasMutation();
 
-    const rawTransactions = kasData?.transactions ?? kasData ?? EMPTY_TRANSACTIONS;
-    const metaParams = rawTransactions.meta ?? rawTransactions;
+    const transactionData = kasData?.transactions ?? { items: [], meta: { current_page: 1, last_page: 1, total: 0 } };
+    const localTransactions = transactionData?.items ?? [];
+    const paginationMeta = transactionData?.meta ?? { current_page: 1, last_page: 1, total: 0 };
     
-    // Adaptasi struktur API yang mungkin mengembalikan `.items`/`.meta` daripada res default
+    // transactions object is used by the pagination UI
     const transactions = {
-        ...rawTransactions,
-        current_page: metaParams.current_page || 1,
-        last_page: metaParams.last_page || 1,
-        total: metaParams.total || 0,
-        prev_page_url: metaParams.current_page > 1 ? "yes" : null, // Dummy marker to enable button
-        next_page_url: metaParams.current_page < metaParams.last_page ? "yes" : null,
+        current_page: paginationMeta.current_page,
+        last_page: paginationMeta.last_page,
+        total: paginationMeta.total,
+        prev_page_url: paginationMeta.current_page > 1 ? "yes" : null,
+        next_page_url: paginationMeta.current_page < paginationMeta.last_page ? "yes" : null,
     };
     
-    const localTransactions = rawTransactions.items ?? rawTransactions.data ?? [];
-    // Ambil dari useKasSummary (endpoint /kas/summary) — bukan dari kasData yang tidak mengandung summary
     const localSummary = summaryData?.summary ?? summaryData ?? EMPTY_SUMMARY;
 
     const [activeTab, setActiveTab] = useState<"tampilan" | "catat">("tampilan");
@@ -397,7 +395,7 @@ export default function KasIndex({
                         </div>
                     </FilterBar>
 
-                    <div className="flex flex-1 min-h-0 flex-col">
+                    <div className="flex flex-1 min-h-0 flex-col gap-2">
                         <DataTable
                             className="flex flex-1 min-h-0"
                             tableFixed
@@ -555,7 +553,7 @@ export default function KasIndex({
                             }
                         />
 
-                        <div className="mt-2 flex shrink-0 flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm sm:flex-row">
+                        <div className="mt-auto flex shrink-0 flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-4 shadow-sm sm:flex-row">
                             {/* Info */}
                             <span className="text-sm text-slate-500">
                                 <span className="font-semibold text-slate-800">
@@ -637,7 +635,7 @@ export default function KasIndex({
                 </div>
             </div>
 
-            <KasFormModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+            <KasFormPanel isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
         </AppLayout>
     );
 }

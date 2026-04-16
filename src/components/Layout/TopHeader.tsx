@@ -17,7 +17,7 @@ export default function TopHeader({
     const { logout } = useAuth();
 
     return (
-        <header className="block flex-none z-30 bg-white border-none relative shadow-sm mt-4 mx-4 rounded-2xl">
+        <header className="block flex-none z-30 bg-white border-none relative border-b border-slate-200">
             <div className="flex items-center justify-between h-[70px] px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center">
                     {title && (

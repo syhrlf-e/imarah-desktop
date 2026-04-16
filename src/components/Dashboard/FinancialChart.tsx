@@ -78,6 +78,7 @@ export default function FinancialChart({ data, loading }: FinancialChartProps) {
                     <ResponsiveContainer
                         width="100%"
                         height="100%"
+                        minHeight={250}
                     >
                         <AreaChart
                             data={data}

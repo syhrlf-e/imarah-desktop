@@ -35,11 +35,13 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
     const { store, update } = useAgendaMutation();
     const [data, setDataForm] = useState({
         title: "",
+        speaker_name: "",
         description: "",
         start_time: "",
         end_time: "",
         location: "",
         type: "kajian" as "kajian" | "rapat" | "kegiatan_sosial" | "lainnya",
+        status: "terjadwal" as "terjadwal" | "berlangsung" | "selesai" | "batal",
     });
     const [processing, setProcessing] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,20 +67,24 @@ export default function AgendaFormModal({ isOpen, onClose, editingAgenda }: Agen
             if (editingAgenda) {
                 setDataForm({
                     title: editingAgenda.title,
+                    speaker_name: editingAgenda.speaker_name || "",
                     description: editingAgenda.description || "",
                     start_time: formatDateForInput(editingAgenda.start_time),
                     end_time: editingAgenda.end_time ? formatDateForInput(editingAgenda.end_time) : "",
                     location: editingAgenda.location || "",
                     type: editingAgenda.type,
+                    status: editingAgenda.status,
                 });
             } else {
                 setDataForm({
                     title: "",
+                    speaker_name: "",
                     description: "",
                     start_time: "",
                     end_time: "",
                     location: "",
                     type: "kajian",
+                    status: "terjadwal",
                 });
             }
         }

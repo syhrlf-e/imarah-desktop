@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import AppLayout from "@/layouts/AppLayout";
 import { useSearchParams } from "react-router-dom";
-import api from "@/lib/api";
+import { useLaporan } from "@/hooks/api/useLaporan";
+import { laporanService, LaporanBreakdownItem } from "@/services/laporanService";
 import {
     PieChart,
     Building,
@@ -12,45 +13,38 @@ import {
 } from "lucide-react";
 import CustomSelect from "@/components/CustomSelect";
 import KasSummaryCards from "@/components/KasSummaryCards";
-import { 
-    PieChart as RechartsPieChart, 
-    Pie, 
-    Cell, 
-    ResponsiveContainer, 
-    Tooltip as RechartsTooltip, 
-    Legend 
+import ErrorState from "@/components/ErrorState";
+import {
+    PieChart as RechartsPieChart,
+    Pie,
+    Cell,
+    ResponsiveContainer,
+    Tooltip as RechartsTooltip,
+    Legend
 } from "recharts";
-
-interface SummaryData {
-    pemasukan_bulan_ini: number;
-    pengeluaran_bulan_ini: number;
-    saldo_akhir_bulan: number;
-    saldo_total_kas: number;
-}
-
-interface BreakdownItem {
-    category: string;
-    total: number;
-}
+import { toast } from "sonner";
 
 const now = new Date();
-const DEFAULT_SUMMARY: SummaryData = { pemasukan_bulan_ini: 0, pengeluaran_bulan_ini: 0, saldo_akhir_bulan: 0, saldo_total_kas: 0 };
-const DEFAULT_BREAKDOWN = { pemasukan: [] as BreakdownItem[], pengeluaran: [] as BreakdownItem[] };
+const DEFAULT_SUMMARY = { pemasukan_bulan_ini: 0, pengeluaran_bulan_ini: 0, saldo_akhir_bulan: 0, saldo_total_kas: 0 };
+const DEFAULT_BREAKDOWN = { pemasukan: [] as LaporanBreakdownItem[], pengeluaran: [] as LaporanBreakdownItem[] };
 
 export default function LaporanIndex() {
     const [searchParams, setSearchParams] = useSearchParams();
-    
+
     const [selectedMonth, setSelectedMonth] = useState(
         searchParams.get("month") || (now.getMonth() + 1).toString().padStart(2, "0")
     );
     const [selectedYear, setSelectedYear] = useState(
         searchParams.get("year") || now.getFullYear().toString()
     );
-    
-    const [summary, setSummary] = useState<SummaryData>(DEFAULT_SUMMARY);
-    const [breakdown, setBreakdown] = useState(DEFAULT_BREAKDOWN);
-    const [loading, setLoading] = useState(true);
+
     const [exporting, setExporting] = useState(false);
+
+    // TanStack Query — automatic caching, deduping, and error handling
+    const { data, isLoading, isError, error } = useLaporan(selectedMonth, selectedYear);
+
+    const summary = data?.summary ?? DEFAULT_SUMMARY;
+    const breakdown = data?.breakdown ?? DEFAULT_BREAKDOWN;
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("id-ID", {
@@ -60,43 +54,24 @@ export default function LaporanIndex() {
         }).format(amount || 0);
     };
 
-    const fetchLaporan = (month: string, year: string) => {
-        setLoading(true);
-        api.get(`/laporan?month=${month}&year=${year}`)
-            .then(res => {
-                const d = res.data?.data;
-                if (d?.summary) setSummary(d.summary);
-                if (d?.breakdown) setBreakdown(d.breakdown);
-            })
-            .catch(err => console.error('Gagal memuat laporan:', err))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchLaporan(selectedMonth, selectedYear);
-    }, []);
-
     const handleFilter = () => {
         setSearchParams({ month: selectedMonth, year: selectedYear });
-        fetchLaporan(selectedMonth, selectedYear);
     };
 
     const handleExport = async () => {
         setExporting(true);
         try {
-            const response = await api.get(`/laporan/export?month=${selectedMonth}&year=${selectedYear}`, {
-                responseType: 'blob',
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
+            const blob = await laporanService.exportLaporan(selectedMonth, selectedYear);
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
             link.href = url;
-            link.setAttribute('download', `Laporan_Keuangan_${selectedMonth}_${selectedYear}.xlsx`);
+            link.setAttribute("download", `Laporan_Keuangan_${selectedMonth}_${selectedYear}.xlsx`);
             document.body.appendChild(link);
             link.click();
             link.remove();
-        } catch (error) {
-            console.error('Gagal export laporan:', error);
-            alert("Gagal mengunduh laporan. Pastikan Anda memiliki akses.");
+            window.URL.revokeObjectURL(url);
+        } catch {
+            toast.error("Gagal mengunduh laporan. Pastikan Anda memiliki akses.");
         } finally {
             setExporting(false);
         }
@@ -117,13 +92,12 @@ export default function LaporanIndex() {
         return date.toLocaleString("id-ID", { month: "long" });
     };
 
-    // Data untuk Pie Chart Perbandingan Total
+    // Pie Chart Data
     const pieData = [
-        { name: "Pemasukan", value: Number(summary.pemasukan_bulan_ini), color: "#10b981" }, // Emerald 500
-        { name: "Pengeluaran", value: Number(summary.pengeluaran_bulan_ini), color: "#ef4444" }, // Red 500
+        { name: "Pemasukan", value: Number(summary.pemasukan_bulan_ini), color: "#10b981" },
+        { name: "Pengeluaran", value: Number(summary.pengeluaran_bulan_ini), color: "#ef4444" },
     ];
 
-    // Cek apakah ada data untuk digambar
     const hasChartData = pieData[0].value > 0 || pieData[1].value > 0;
 
     const renderCustomTooltip = ({ active, payload }: any) => {
@@ -137,6 +111,26 @@ export default function LaporanIndex() {
         }
         return null;
     };
+
+    // ── Error State (403, 500, network) ────────────────────────
+    if (isError) {
+        const isForbidden = (error as any)?.response?.status === 403;
+        return (
+            <AppLayout title="Laporan Keuangan">
+                <div className="flex-1 flex items-center justify-center">
+                    <ErrorState
+                        title={isForbidden ? "Akses Ditolak" : undefined}
+                        message={
+                            isForbidden
+                                ? "Anda tidak memiliki izin untuk melihat laporan ini. Hubungi administrator jika Anda merasa ini adalah kesalahan."
+                                : "Terjadi kesalahan saat memuat data. Periksa koneksi Anda dan coba lagi."
+                        }
+                        onRetry={() => window.location.reload()}
+                    />
+                </div>
+            </AppLayout>
+        );
+    }
 
     return (
         <AppLayout title="Laporan Keuangan">
@@ -208,7 +202,7 @@ export default function LaporanIndex() {
                     pengeluaranBulanIni={summary.pengeluaran_bulan_ini}
                     surplusDefisit={summary.saldo_akhir_bulan}
                     monthLabel={getMonthName(selectedMonth)}
-                    loading={loading}
+                    loading={isLoading}
                 />
             </div>
 
@@ -225,11 +219,11 @@ export default function LaporanIndex() {
                     </p>
                     
                     <div className="flex-1 flex flex-col items-center justify-center min-h-[250px]">
-                        {loading ? (
+                        {isLoading ? (
                             <div className="w-48 h-48 rounded-full border-8 border-slate-100 animate-pulse"></div>
                         ) : hasChartData ? (
                             <div className="w-full h-64">
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                     <RechartsPieChart>
                                         <Pie
                                             data={pieData}
@@ -278,13 +272,13 @@ export default function LaporanIndex() {
                             </span>
                         </div>
                         <div className="p-3 flex-1 overflow-y-auto max-h-[300px]">
-                            {loading ? (
+                            {isLoading ? (
                                 <div className="p-4 space-y-3">
                                     {[1,2,3].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse"></div>)}
                                 </div>
                             ) : breakdown.pemasukan.length > 0 ? (
                                 <ul className="space-y-1">
-                                    {breakdown.pemasukan.map((item, idx) => (
+                                    {breakdown.pemasukan.map((item: LaporanBreakdownItem, idx: number) => (
                                         <li
                                             key={idx}
                                             className="flex justify-between items-center p-3 sm:p-4 hover:bg-slate-50 rounded-2xl transition-colors"
@@ -322,13 +316,13 @@ export default function LaporanIndex() {
                             </span>
                         </div>
                         <div className="p-3 flex-1 overflow-y-auto max-h-[300px]">
-                            {loading ? (
+                            {isLoading ? (
                                 <div className="p-4 space-y-3">
                                     {[1,2].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse"></div>)}
                                 </div>
                             ) : breakdown.pengeluaran.length > 0 ? (
                                 <ul className="space-y-1">
-                                    {breakdown.pengeluaran.map((item, idx) => (
+                                    {breakdown.pengeluaran.map((item: LaporanBreakdownItem, idx: number) => (
                                         <li
                                             key={idx}
                                             className="flex justify-between items-center p-3 sm:p-4 hover:bg-slate-50 rounded-2xl transition-colors"

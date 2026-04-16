@@ -25,9 +25,13 @@ interface InventarisFormModalProps {
 export default function InventarisFormModal({ isOpen, onClose, editingItem }: InventarisFormModalProps) {
     const { store, update } = useInventarisMutation();
     const [data, setDataForm] = useState({
+        item_code: "",
         item_name: "",
+        category: "aset" as "aset" | "habis_pakai",
         quantity: "" as number | string,
         condition: "baik" as "baik" | "rusak_ringan" | "rusak_berat",
+        source: "beli" as "beli" | "wakaf" | "hibah",
+        source_details: "",
         location: "",
         notes: "",
     });
@@ -42,17 +46,25 @@ export default function InventarisFormModal({ isOpen, onClose, editingItem }: In
             setProcessing(false);
             if (editingItem) {
                 setDataForm({
+                    item_code: editingItem.item_code || "",
                     item_name: editingItem.item_name,
+                    category: editingItem.category,
                     quantity: editingItem.quantity,
                     condition: editingItem.condition,
+                    source: editingItem.source,
+                    source_details: editingItem.source_details || "",
                     location: editingItem.location || "",
                     notes: editingItem.notes || "",
                 });
             } else {
                 setDataForm({
+                    item_code: "",
                     item_name: "",
+                    category: "aset",
                     quantity: "",
                     condition: "baik",
+                    source: "beli",
+                    source_details: "",
                     location: "",
                     notes: "",
                 });

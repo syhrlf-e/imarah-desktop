@@ -13,20 +13,16 @@ export const useAgendaData = (params: string) => {
 export const useAgendaMutation = () => {
   const queryClient = useQueryClient();
 
-  const invalidate = async () => {
-    // Invalidate active queries to refetch them immediately
-    await queryClient.invalidateQueries({ queryKey: ["agenda"], type: "active" });
-    // Remove inactive queries so they don't flash old data
-    await queryClient.removeQueries({ queryKey: ["agenda"], type: "inactive" });
-    
-    // Hapus cache dashboard agar jika kembali ke dashboard, datanya benar-benar fresh
-    await queryClient.removeQueries({ queryKey: ["dashboard"] });
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["agenda"] });
+    // Also invalidate dashboard cache if agenda changes might affect it
+    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
   };
 
   const store = useMutation({
     mutationFn: agendaService.create,
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
+      invalidate();
       toast.success("Agenda berhasil dibuat");
     },
     onError: () => toast.error("Gagal membuat agenda"),
@@ -34,8 +30,8 @@ export const useAgendaMutation = () => {
 
   const update = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => agendaService.update(id, data),
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
+      invalidate();
       toast.success("Agenda berhasil diperbarui");
     },
     onError: () => toast.error("Gagal memperbarui agenda"),
@@ -43,8 +39,8 @@ export const useAgendaMutation = () => {
 
   const remove = useMutation({
     mutationFn: agendaService.delete,
-    onSuccess: async () => {
-      await invalidate();
+    onSuccess: () => {
+      invalidate();
       toast.success("Agenda berhasil dihapus");
     },
     onError: () => toast.error("Gagal menghapus agenda"),
