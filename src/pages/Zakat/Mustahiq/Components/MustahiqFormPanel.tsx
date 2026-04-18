@@ -12,9 +12,9 @@ import CustomSelect from "@/components/CustomSelect";
 interface Mustahiq {
     id: string;
     name: string;
-    category: string;
-    phone: string | null;
+    ashnaf: string;
     address: string | null;
+    description: string | null;
     created_at?: string;
 }
 
@@ -24,15 +24,15 @@ interface Props {
     mustahiq?: Mustahiq | null;
 }
 
-const CATEGORIES = [
-    { value: "Fakir", label: "Fakir" },
-    { value: "Miskin", label: "Miskin" },
-    { value: "Amil", label: "Amil" },
-    { value: "Mualaf", label: "Mualaf" },
-    { value: "Riqab", label: "Riqab (Hamba Sahaya)" },
-    { value: "Gharimin", label: "Gharimin (Berhutang)" },
-    { value: "Fisabilillah", label: "Fisabilillah" },
-    { value: "Ibnu Sabil", label: "Ibnu Sabil (Musafir)" },
+const ASHNAF_OPTIONS = [
+    { value: "fakir", label: "Fakir" },
+    { value: "miskin", label: "Miskin" },
+    { value: "amil", label: "Amil" },
+    { value: "mualaf", label: "Mualaf" },
+    { value: "riqab", label: "Riqab (Hamba Sahaya)" },
+    { value: "gharim", label: "Gharimin (Berhutang)" },
+    { value: "fisabilillah", label: "Fisabilillah" },
+    { value: "ibnusabil", label: "Ibnu Sabil (Musafir)" },
 ];
 
 export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) {
@@ -41,8 +41,8 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
 
     const [data, setDataForm] = useState({
         name: "",
-        category: "Miskin",
-        phone: "",
+        ashnaf: "miskin",
+        description: "",
         address: "",
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,8 +52,8 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
 
     const reset = () => setDataForm({
         name: "",
-        category: "Miskin",
-        phone: "",
+        ashnaf: "miskin",
+        description: "",
         address: "",
     });
 
@@ -64,8 +64,8 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
             if (mustahiq) {
                 setDataForm({
                     name: mustahiq.name || "",
-                    category: mustahiq.category || "Miskin",
-                    phone: mustahiq.phone || "",
+                    ashnaf: mustahiq.ashnaf || "miskin",
+                    description: mustahiq.description || "",
                     address: mustahiq.address || "",
                 });
             } else {
@@ -83,7 +83,14 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
         clearErrors();
 
         try {
-            const action = mustahiq ? update.mutateAsync(data) : store.mutateAsync(data);
+            const payload = {
+                name: data.name,
+                ashnaf: data.ashnaf,
+                description: data.description,
+                address: data.address,
+            };
+
+            const action = mustahiq ? update.mutateAsync(payload) : store.mutateAsync(payload);
             await action;
             onClose();
         } catch (error: any) {
@@ -93,7 +100,9 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
                     setError(key, (msgs as string[])[0]);
                 });
             } else {
-                setError("form", errData?.message ?? "Gagal menyimpan data.");
+                // Also handle string errors from Rust directly
+                const errorMessage = typeof error === "string" ? error : errData?.message;
+                setError("form", errorMessage ?? "Gagal menyimpan data.");
             }
         } finally {
             setProcessing(false);
@@ -120,23 +129,23 @@ export default function MustahiqFormPanel({ isOpen, onClose, mustahiq }: Props) 
                                 </div>
 
                                 <div>
-                                    <InputLabel htmlFor="category" value="Kategori Mustahiq *" />
+                                    <InputLabel htmlFor="ashnaf" value="Kategori Ashnaf *" />
                                     <div className="mt-1">
-                                        <CustomSelect value={data.category} onChange={(val) => setData("category", val)} options={CATEGORIES} />
+                                        <CustomSelect value={data.ashnaf} onChange={(val) => setData("ashnaf", val)} options={ASHNAF_OPTIONS} />
                                     </div>
-                                    <InputError message={errors.category} className="mt-2" />
+                                    <InputError message={errors.ashnaf} className="mt-2" />
                                 </div>
 
                                 <div>
-                                    <InputLabel htmlFor="phone" value="Nomor HP (WhatsApp)" />
-                                    <TextInput id="phone" value={data.phone} onChange={(e) => setData("phone", e.target.value.replace(/\D/g, "").slice(0, 13))} className="block w-full mt-1" placeholder="0812..." />
-                                    <InputError message={errors.phone} className="mt-2" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="address" value="Alamat" />
+                                    <InputLabel htmlFor="address" value="Alamat *" />
                                     <TextInput id="address" value={data.address} onChange={(e) => setData("address", e.target.value)} className="block w-full mt-1" placeholder="Jl. Anggrek..." />
                                     <InputError message={errors.address} className="mt-2" />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="description" value="Keterangan (Opsional)" />
+                                    <TextInput id="description" value={data.description} onChange={(e) => setData("description", e.target.value)} className="block w-full mt-1" placeholder="Keterangan tambahan..." />
+                                    <InputError message={errors.description} className="mt-2" />
                                 </div>
 
                                 {errors.form && <InputError message={errors.form} className="mt-2" />}

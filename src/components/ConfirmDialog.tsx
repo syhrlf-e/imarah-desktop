@@ -81,13 +81,13 @@ export default function ConfirmDialog({
                                         </div>
                                     </div>
                                 </div>
-                                <div className="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <div className="bg-slate-50/50 px-4 py-4 sm:flex sm:flex-row-reverse sm:px-6 gap-3">
                                     <button
                                         type="button"
-                                        className={`inline-flex w-full justify-center rounded-md px-3 py-2 text-sm font-semibold text-white shadow-sm sm:ml-3 sm:w-auto ${
+                                        className={`inline-flex w-full justify-center rounded-2xl px-5 py-2.5 text-sm font-bold text-white shadow-sm sm:w-auto transition-all duration-200 active:scale-[0.98] ${
                                             isDanger
-                                                ? "bg-red-600 hover:bg-red-500 focus-visible:outline-red-600"
-                                                : "bg-emerald-600 hover:bg-emerald-500 focus-visible:outline-emerald-600"
+                                                ? "bg-red-600 hover:bg-red-700 focus-visible:outline-red-600"
+                                                : "bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-emerald-600"
                                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                                         onClick={onConfirm}
                                         disabled={isLoading}
@@ -103,7 +103,7 @@ export default function ConfirmDialog({
                                     </button>
                                     <button
                                         type="button"
-                                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 sm:mt-0 sm:w-auto"
+                                        className="mt-3 inline-flex w-full justify-center rounded-2xl bg-white px-5 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 sm:mt-0 sm:w-auto transition-all duration-200 active:scale-[0.98]"
                                         onClick={onClose}
                                         disabled={isLoading}
                                     >

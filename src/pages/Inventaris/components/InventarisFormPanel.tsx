@@ -84,12 +84,9 @@ export default function InventarisFormPanel({ isOpen, onClose, editingItem }: In
             }
             onClose();
         } catch (error: any) {
-            const errData = error?.response?.data;
-            if (errData?.errors) {
-                setErrors(errData.errors);
-            } else {
-                setErrors({ submit: errData?.message || "Gagal menyimpan data inventaris." });
-            }
+            console.error("Gagal menyimpan data:", error);
+            const errorMessage = typeof error === "string" ? error : (error?.message || "Gagal menyimpan data inventaris.");
+            setErrors({ submit: errorMessage });
         } finally {
             setProcessing(false);
         }

@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react";
-import { secureStore } from "@/lib/store";
+import { invoke } from "@tauri-apps/api/core";
 
 interface Props {
   children: ReactNode;
@@ -20,8 +20,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReset = async () => {
-    // Menghapus data dari tauri-plugin-store (Secure Store)
-    await secureStore.delete("auth_token");
+    // Menghapus data dari Rust secure store
+    await invoke("clear_auth_data");
     window.location.href = "/";
   };
 

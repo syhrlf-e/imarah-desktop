@@ -1,4 +1,5 @@
 import React, { ReactNode } from "react";
+import { motion } from "framer-motion";
 
 export interface ColumnDef<T> {
   key: string;
@@ -35,11 +36,25 @@ export default function DataTable<T>({
     return typeof cls === "function" ? cls(row) : cls;
   };
 
+  const showSkeleton = loading || (isFetching && data.length === 0);
+
   return (
     <div
       className={`bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col relative ${className}`}
     >
-      <div className={`overflow-auto flex-1 transition-opacity duration-200`}>
+      {/* Background Refetch Indicator */}
+      {isFetching && data.length > 0 && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-500/20 z-30 overflow-hidden">
+          <motion.div
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+            className="h-full w-1/3 bg-green-600"
+          />
+        </div>
+      )}
+
+      <div className={`overflow-auto flex-1 transition-opacity duration-200 ${isFetching && data.length > 0 ? "opacity-60" : "opacity-100"}`}>
         <table
           className={`w-full text-sm text-left align-middle whitespace-nowrap ${tableFixed ? "table-fixed" : ""}`}
         >
@@ -56,7 +71,7 @@ export default function DataTable<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100/80">
-            {loading || isFetching ? (
+            {showSkeleton ? (
               [...Array(5)].map((_, i) => (
                 <tr key={i} className="animate-pulse">
                   {columns.map((col) => (

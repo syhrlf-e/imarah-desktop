@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usersService } from "@/services/usersService";
 import { User } from "@/types";
+import { invoke } from "@tauri-apps/api/core";
 
 export const useUsersData = () => {
   return useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      return await usersService.getAll();
+      return await invoke<User[]>("list_users");
     },
   });
 };

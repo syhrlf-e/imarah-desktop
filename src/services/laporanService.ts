@@ -1,4 +1,5 @@
 import api from "@/lib/api";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface LaporanSummary {
   pemasukan_bulan_ini: number;
@@ -39,24 +40,21 @@ export const laporanService = {
     month: string | number,
     year: string | number,
   ): Promise<LaporanResponse> => {
-    const res = await api.get<LaporanResponse>("/laporan", {
-      params: { month, year },
-    });
+    const res = await api.get<LaporanResponse>(`/laporan?month=${month}&year=${year}`);
     return res.data;
   },
 
   /**
-   * Export monthly financial report to Excel (.xlsx).
-   * Requires role: super_admin, bendahara, or petugas_zakat.
+   * Export monthly financial report to Excel (.xlsx) using Rust native dialog.
+   * Returns the saved file path.
    */
   exportLaporan: async (
     month: string | number,
     year: string | number,
-  ): Promise<Blob> => {
-    const res = await api.get("/laporan/export", {
-      params: { month, year },
-      responseType: "blob",
+  ): Promise<string> => {
+    return await invoke("export_laporan", {
+      month: String(month),
+      year: String(year),
     });
-    return res.data;
   },
 };

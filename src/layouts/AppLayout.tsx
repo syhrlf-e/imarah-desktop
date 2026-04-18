@@ -6,7 +6,6 @@ import LoginChallengeHandler from "@/components/Layout/LoginChallengeHandler";
 import PageTransitionWrapper from "@/components/Layout/PageTransitionWrapper";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSessionHeartbeat } from "@/hooks/useSessionHeartbeat";
-import { useTauriWindowClose } from "@/hooks/useTauriWindowClose";
 
 interface Props {
   title?: string;
@@ -34,7 +33,6 @@ export default function AppLayout({ title, children }: Props) {
 
   // ── Extracted concerns ──────────────────────────────────────
   useSessionHeartbeat();
-  useTauriWindowClose(auth.user.id);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -43,9 +41,6 @@ export default function AppLayout({ title, children }: Props) {
 
       {/* Login Challenge Handler (modal + reject toast) */}
       <LoginChallengeHandler userId={userId} />
-
-      {/* PWA Window Controls Overlay - Drag Region */}
-      <div className="pwa-titlebar-drag" />
 
       <Sidebar
         auth={auth}

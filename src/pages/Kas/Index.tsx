@@ -37,6 +37,7 @@ import KasSummaryCards from "@/components/KasSummaryCards";
 import DataTable, { ColumnDef } from "@/components/DataTable";
 import PrimaryButton from "@/components/PrimaryButton";
 import KasFormPanel from "./components/KasFormPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const CATEGORY_OPTIONS_IN = [
     { value: "zakat_fitrah", label: "Zakat Fitrah" },
@@ -88,10 +89,9 @@ export default function KasIndex({
     const { data: kasData, isLoading: loadingKas, isFetching: fetchingKas } = useKasTransactions(searchParams.toString());
     const { store, verify, remove } = useKasMutation();
 
-    const transactionData = kasData?.transactions ?? { items: [], meta: { current_page: 1, last_page: 1, total: 0 } };
-    const localTransactions = transactionData?.items ?? [];
-    const paginationMeta = transactionData?.meta ?? { current_page: 1, last_page: 1, total: 0 };
-    
+    const localTransactions = kasData?.data ?? kasData?.transactions?.items ?? [];
+    const paginationMeta = kasData?.meta ?? kasData?.transactions ?? { current_page: 1, last_page: 1, total: 0 };
+
     // transactions object is used by the pagination UI
     const transactions = {
         current_page: paginationMeta.current_page,
@@ -100,11 +100,12 @@ export default function KasIndex({
         prev_page_url: paginationMeta.current_page > 1 ? "yes" : null,
         next_page_url: paginationMeta.current_page < paginationMeta.last_page ? "yes" : null,
     };
-    
     const localSummary = summaryData?.summary ?? summaryData ?? EMPTY_SUMMARY;
 
     const [activeTab, setActiveTab] = useState<"tampilan" | "catat">("tampilan");
     const [isCategoryFilterOpen, setIsCategoryFilterOpen] = useState(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [confirmVerifyId, setConfirmVerifyId] = useState<string | null>(null);
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [localSearch, setLocalSearch] = useState(search);
 
@@ -178,8 +179,8 @@ export default function KasIndex({
     };
 
     const isBendaharaOrAdmin =
-        auth.user.role === "bendahara" || auth.user.role === "super_admin";
-    const isSuperAdmin = auth.user.role === "super_admin";
+        authUser?.role === "bendahara" || authUser?.role === "super_admin";
+    const isSuperAdmin = authUser?.role === "super_admin";
 
     const [hijriDate, setHijriDate] = useState<string>("");
 
@@ -203,22 +204,30 @@ export default function KasIndex({
 
     const masehiDateStr = dayjs().format("dddd, D MMMM YYYY");
 
-    const handleDelete = async (id: string) => {
-        if (confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+    const handleDelete = (id: string) => {
+        setConfirmDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (confirmDeleteId) {
             try {
-                await remove.mutateAsync(id);
-            } catch (err) {
-                console.error("Gagal menghapus:", err);
+                await remove.mutateAsync(confirmDeleteId);
+            } finally {
+                setConfirmDeleteId(null);
             }
         }
     };
 
-    const handleVerify = async (id: string) => {
-        if (confirm("Verifikasi transaksi ini?")) {
+    const handleVerify = (id: string) => {
+        setConfirmVerifyId(id);
+    };
+
+    const confirmVerify = async () => {
+        if (confirmVerifyId) {
             try {
-                await verify.mutateAsync(id);
-            } catch (err) {
-                console.error("Gagal memverifikasi:", err);
+                await verify.mutateAsync(confirmVerifyId);
+            } finally {
+                setConfirmVerifyId(null);
             }
         }
     };
@@ -636,6 +645,26 @@ export default function KasIndex({
             </div>
 
             <KasFormPanel isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} />
+
+            <ConfirmDialog
+                isOpen={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Transaksi Kas?"
+                variant="danger"
+            >
+                Apakah Anda yakin ingin menghapus transaksi ini? Saldo kas akan otomatis disesuaikan.
+            </ConfirmDialog>
+
+            <ConfirmDialog
+                isOpen={!!confirmVerifyId}
+                onClose={() => setConfirmVerifyId(null)}
+                onConfirm={confirmVerify}
+                title="Verifikasi Transaksi?"
+                variant="primary"
+            >
+                Apakah Anda sudah memastikan data transaksi ini valid?
+            </ConfirmDialog>
         </AppLayout>
     );
 }

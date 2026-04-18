@@ -21,6 +21,7 @@ import DataTable, { ColumnDef } from "@/components/DataTable";
 import PrimaryButton from "@/components/PrimaryButton";
 import { motion, AnimatePresence } from "framer-motion";
 import InventarisFormPanel from "./components/InventarisFormPanel";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface User {
     id: string;
@@ -63,6 +64,7 @@ export default function InventarisIndex() {
     
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     const applyFilters = useCallback(
         (params: { search?: string; condition?: string; page?: string }) => {
@@ -111,9 +113,14 @@ export default function InventarisIndex() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
-            await remove.mutateAsync(id);
+    const handleDelete = (id: string) => {
+        setConfirmDeleteId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (confirmDeleteId) {
+            await remove.mutateAsync(confirmDeleteId);
+            setConfirmDeleteId(null);
         }
     };
 
@@ -436,6 +443,16 @@ export default function InventarisIndex() {
                 onClose={() => setIsAddOpen(false)}
                 editingItem={editingItem}
             />
+
+            <ConfirmDialog
+                isOpen={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Barang Inventaris?"
+                variant="danger"
+            >
+                Apakah Anda yakin ingin menghapus data barang ini? Tindakan ini tidak dapat dibatalkan.
+            </ConfirmDialog>
         </AppLayout>
     );
 }

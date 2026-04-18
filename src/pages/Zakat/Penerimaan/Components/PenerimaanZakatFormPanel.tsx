@@ -3,12 +3,13 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePenerimaanMutation } from "@/hooks/api/useZakat";
 import { useNetwork } from "@/hooks/useNetwork";
+import api from "@/lib/api";
 import FormActions from "@/components/FormActions";
 import InputLabel from "@/components/InputLabel";
 import TextInput from "@/components/TextInput";
 import InputError from "@/components/InputError";
 import CustomSelect from "@/components/CustomSelect";
-import api from "@/lib/api";
+import { invoke } from "@tauri-apps/api/core";
 
 interface MuzakkiShort {
     id: string;
@@ -85,10 +86,25 @@ export default function PenerimaanZakatFormPanel({ isOpen, onClose, muzakkis }: 
         setErrors({});
 
         try {
-            await store.mutateAsync({
-                ...data,
-                amount: data.type === 'fitrah' ? (calculatedAmount || data.amount) : data.amount,
-            });
+            const payload: any = {
+                type: data.type,
+                contact_id: data.muzakki_contact_id,
+                effective_date: data.effective_date,
+                payment_channel_id: data.payment_channel_id,
+            };
+
+            if (data.notes && data.notes.trim() !== '') {
+                payload.notes = data.notes;
+            }
+
+            if (data.type === 'fitrah') {
+                payload.jiwa = Number(data.jiwa);
+                payload.nominal_per_jiwa = Number(data.nominal_per_jiwa);
+            } else {
+                payload.amount = Number(data.amount);
+            }
+
+            await store.mutateAsync(payload);
             onClose();
         } catch (error: any) {
             const errData = error?.response?.data;

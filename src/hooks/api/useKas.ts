@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { kasService } from "@/services/kasService";
-import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "@/components/Toast";
 
 export const useKasSummary = (month: string | number, year: string | number) => {
   return useQuery({
     queryKey: ["kas", "summary", month, year],
-    queryFn: () => kasService.getSummary(month, year),
+    queryFn: () => invoke<any>("get_kas_summary", { month: String(month), year: String(year) }),
     staleTime: 1000 * 60 * 5, // Data dianggap segar selama 5 menit
   });
 };
@@ -13,7 +13,7 @@ export const useKasSummary = (month: string | number, year: string | number) => 
 export const useKasTransactions = (params: string) => {
   return useQuery({
     queryKey: ["kas", "transactions", params],
-    queryFn: () => kasService.getAll(params),
+    queryFn: () => invoke<any>("list_kas_transactions", { params }),
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5, // Data dianggap segar selama 5 menit
   });
@@ -22,19 +22,14 @@ export const useKasTransactions = (params: string) => {
 export const useKasMutation = () => {
   const queryClient = useQueryClient();
 
-  // Fungsi helper untuk refresh data setelah mutasi berhasil
   const invalidate = async () => {
-    // Invalidate active queries to refetch them immediately
     await queryClient.invalidateQueries({ queryKey: ["kas"], type: "active" });
-    // Remove inactive queries (like other cached filters) so they don't flash old data
     await queryClient.removeQueries({ queryKey: ["kas"], type: "inactive" });
-    
-    // Hapus cache dashboard agar jika kembali ke dashboard, datanya benar-benar fresh dan tidak berkedip
     await queryClient.removeQueries({ queryKey: ["dashboard"] });
   };
 
   const store = useMutation({
-    mutationFn: kasService.create,
+    mutationFn: (data: any) => invoke("create_kas_transaction", { data }),
     onSuccess: async () => {
       await invalidate();
       toast.success("Transaksi berhasil disimpan");
@@ -43,7 +38,7 @@ export const useKasMutation = () => {
   });
 
   const verify = useMutation({
-    mutationFn: kasService.verify,
+    mutationFn: (id: string) => invoke("verify_kas_transaction", { id }),
     onSuccess: async () => {
       await invalidate();
       toast.success("Transaksi berhasil diverifikasi");
@@ -52,7 +47,7 @@ export const useKasMutation = () => {
   });
 
   const remove = useMutation({
-    mutationFn: kasService.delete,
+    mutationFn: (id: string) => invoke("delete_kas_transaction", { id }),
     onSuccess: async () => {
       await invalidate();
       toast.success("Transaksi berhasil dihapus");

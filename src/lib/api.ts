@@ -1,41 +1,54 @@
-import axios from "axios";
-import { secureStore } from "./store";
+import { invoke } from "@tauri-apps/api/core";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://imarah-backend.test/api",
-  headers: {
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-    Expires: "0",
-  },
-});
+type ApiResponse<T = any> = {
+  data: T;
+  status: number;
+};
 
-// Interceptor: Asynchronously fetch token dari Desktop Store
-api.interceptors.request.use(async (config) => {
-  try {
-    const token = await secureStore.get<string>("auth_token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+const api = {
+  async request<T = any>(method: string, path: string, body?: any): Promise<ApiResponse<T>> {
+    try {
+      const response = await invoke<any>("api_request", {
+        request: {
+          method,
+          path,
+          body,
+        },
+      });
+
+      return {
+        data: response,
+        status: 200, // Rust command returns Err for non-2xx, so if we reach here, it's success
+      };
+    } catch (error: any) {
+      if (error === "Unauthorized" || (error?.response?.status === 401)) {
+        // Dispatch custom event so AuthContext can handle logout & redirect
+        window.dispatchEvent(new CustomEvent("unauthorized-access"));
+      }
+      throw {
+        response: {
+          data: error,
+          status: error === "Unauthorized" || error.toString().includes("401") ? 401 : 500,
+        },
+      };
     }
-  } catch (error) {
-    console.error("Error fetching token from secure store", error);
-  }
-  return config;
-});
-
-// Interceptor: Handle kalau error (misal: token expired)
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Hapus token secara native
-      await secureStore.delete("auth_token");
-      await secureStore.save();
-    }
-    return Promise.reject(error);
   },
-);
+
+  get<T = any>(path: string) {
+    return this.request<T>("GET", path);
+  },
+
+  post<T = any>(path: string, body?: any) {
+    return this.request<T>("POST", path, body);
+  },
+
+  put<T = any>(path: string, body?: any) {
+    return this.request<T>("PUT", path, body);
+  },
+
+  delete<T = any>(path: string, body?: any) {
+    return this.request<T>("DELETE", path, body);
+  },
+};
 
 export default api;

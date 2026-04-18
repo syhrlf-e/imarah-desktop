@@ -22,7 +22,7 @@ import {
     Tooltip as RechartsTooltip,
     Legend
 } from "recharts";
-import { toast } from "sonner";
+import { toast } from "@/components/Toast";
 
 const now = new Date();
 const DEFAULT_SUMMARY = { pemasukan_bulan_ini: 0, pengeluaran_bulan_ini: 0, saldo_akhir_bulan: 0, saldo_total_kas: 0 };
@@ -61,17 +61,14 @@ export default function LaporanIndex() {
     const handleExport = async () => {
         setExporting(true);
         try {
-            const blob = await laporanService.exportLaporan(selectedMonth, selectedYear);
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", `Laporan_Keuangan_${selectedMonth}_${selectedYear}.xlsx`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-        } catch {
-            toast.error("Gagal mengunduh laporan. Pastikan Anda memiliki akses.");
+            const savedPath = await laporanService.exportLaporan(selectedMonth, selectedYear);
+            if (savedPath) {
+                toast.success(`Laporan berhasil disimpan di: ${savedPath}`);
+            }
+        } catch (e: any) {
+            if (e !== "Export dibatalkan") {
+                toast.error("Gagal mengunduh laporan. Pastikan Anda memiliki akses.");
+            }
         } finally {
             setExporting(false);
         }
@@ -173,7 +170,7 @@ export default function LaporanIndex() {
                         </div>
                         <button
                             onClick={handleFilter}
-                            className="ml-1 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium text-sm shadow-sm"
+                            className="ml-1 px-5 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-all duration-200 font-bold text-sm shadow-md active:scale-[0.98] cursor-pointer"
                         >
                             Cari
                         </button>
@@ -182,14 +179,14 @@ export default function LaporanIndex() {
                     <button
                         onClick={handleExport}
                         disabled={exporting}
-                        className="w-full sm:w-auto px-5 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl hover:bg-emerald-100 transition-colors font-bold text-sm shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 text-white rounded-full hover:bg-emerald-700 transition-all duration-200 font-bold text-sm shadow-lg shadow-emerald-600/10 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] cursor-pointer"
                     >
                         {exporting ? (
-                            <div className="animate-spin h-4 w-4 border-2 border-emerald-700 border-t-transparent rounded-full" />
+                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
                         ) : (
                             <FileSpreadsheet className="w-4 h-4" />
                         )}
-                        {exporting ? "Memproses..." : "Unduh Excel"}
+                        {exporting ? "Memproses..." : "Unduh Laporan Excel"}
                     </button>
                 </div>
             </div>

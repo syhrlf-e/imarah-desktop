@@ -58,7 +58,18 @@ export default function PenyaluranZakatFormPanel({ isOpen, onClose, mustahiqs }:
         setErrors({});
 
         try {
-            await store.mutateAsync(data);
+            const payload: any = {
+                mustahiq_profile_id: data.mustahiq_profile_id,
+                type: data.type,
+                amount: Number(data.amount),
+                effective_date: data.effective_date,
+                payment_channel_id: data.payment_channel_id,
+            };
+            if (data.notes && data.notes.trim() !== '') {
+                payload.notes = data.notes;
+            }
+
+            await store.mutateAsync(payload);
             onClose();
         } catch (error: any) {
             const errData = error?.response?.data;

@@ -6,15 +6,20 @@ import {
   ReactNode,
 } from "react";
 import api from "@/lib/api";
-import { secureStore } from "@/lib/store";
 import { queryClient } from "@/lib/queryClient";
-import { clear as clearIDB } from "idb-keyval";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 type User = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
+};
+
+type AuthStatus = {
+  is_authenticated: boolean;
+  user: User | null;
 };
 
 type AuthContextType = {
@@ -33,8 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const login = async (newToken: string, userData: User) => {
-    await secureStore.set("auth_token", newToken);
-    await secureStore.save(); // Pastikan tersimpan ke disk
+    // Save to Rust secure store
+    await invoke("set_auth_data", { token: newToken, user: userData });
     setToken(newToken);
     setUser(userData);
   };
@@ -45,47 +50,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("Logout failed", e);
     } finally {
-      // 1. Matikan reaktivitas cache dan musnahkan status query saat ini
-      queryClient.clear();
-      
-      // 2. Musnahkan simpanan disk Offline-First dari idb-keyval
-      try {
-        await clearIDB();
-      } catch (idbErr) {
-        console.error("Gagal menghapus IndexedDB Cache", idbErr);
-      }
+      // 1. Clear Rust secure store
+      await invoke("clear_auth_data");
 
-      // 3. Cabut token akses dari Secure Store (Desktop Vault)
-      await secureStore.delete("auth_token");
-      await secureStore.save();
+      // 2. Clear local cache
+      queryClient.clear();
       
       setToken(null);
       setUser(null);
-      window.location.href = "/login";
     }
   };
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener("unauthorized-access", handleUnauthorized);
+
+    // Listen to session-revoked event from Rust
+    const unlistenRevoked = listen("session-revoked", () => {
+      logout();
+    });
+
+    // Start Rust background pulse
+    invoke("start_app_pulse").catch(console.error);
+
+    return () => {
+      window.removeEventListener("unauthorized-access", handleUnauthorized);
+      unlistenRevoked.then(fn => fn());
+    };
+  }, []);
 
   useEffect(() => {
     const checkAuth = async () => {
       setLoading(true);
       try {
-        const storedToken = await secureStore.get<string>("auth_token");
-        if (!storedToken) {
-            setLoading(false);
-            return;
-        }
-        setToken(storedToken);
-        const response = await api.get("/profile");
-        const profileData =
-          response.data?.data?.user ?? response.data?.data ?? response.data;
-        if (profileData?.id) {
-          setUser(profileData as User);
+        const status = await invoke<AuthStatus>("get_auth_status");
+        
+        if (status.is_authenticated && status.user) {
+          setUser(status.user);
+        } else {
+          setUser(null);
         }
       } catch (e) {
-        console.error("Token verification failed", e);
-        await secureStore.delete("auth_token");
-        await secureStore.save();
-        setToken(null);
+        console.error("Auth status check failed", e);
+        await invoke("clear_auth_data");
         setUser(null);
       } finally {
         setLoading(false);

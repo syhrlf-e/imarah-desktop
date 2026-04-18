@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { laporanService, LaporanData } from "@/services/laporanService";
-import { toast } from "sonner";
+import { toast } from "@/components/Toast";
 import axios from "axios";
 import { useEffect } from "react";
 

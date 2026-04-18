@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { settingsService } from "@/services/settingsService";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface SettingsData {
   masjid_name: string;
@@ -12,7 +12,7 @@ export const useSettingsData = () => {
   return useQuery({
     queryKey: ["settings"],
     queryFn: async () => {
-      return await settingsService.get();
+      return await invoke<SettingsData>("get_settings");
     },
   });
 };
@@ -22,7 +22,7 @@ export const useSettingsMutation = () => {
 
   const update = useMutation({
     mutationFn: async (payload: SettingsData) => {
-      return await settingsService.update(payload);
+      return await invoke("update_settings", { payload });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });

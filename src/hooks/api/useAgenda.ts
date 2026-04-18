@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { agendaService } from "@/services/agendaService";
-import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "@/components/Toast";
 
 export const useAgendaData = (params: string) => {
   return useQuery({
     queryKey: ["agenda", params],
-    queryFn: () => agendaService.getAll(params),
+    queryFn: () => invoke<any>("list_agenda", { params }),
     staleTime: 5 * 60 * 1000,
   });
 };
@@ -15,12 +15,11 @@ export const useAgendaMutation = () => {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["agenda"] });
-    // Also invalidate dashboard cache if agenda changes might affect it
     queryClient.invalidateQueries({ queryKey: ["dashboard"] });
   };
 
   const store = useMutation({
-    mutationFn: agendaService.create,
+    mutationFn: (data: any) => invoke("create_agenda", { data }),
     onSuccess: () => {
       invalidate();
       toast.success("Agenda berhasil dibuat");
@@ -29,7 +28,8 @@ export const useAgendaMutation = () => {
   });
 
   const update = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => agendaService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+        invoke("update_agenda", { id, data }),
     onSuccess: () => {
       invalidate();
       toast.success("Agenda berhasil diperbarui");
@@ -38,7 +38,7 @@ export const useAgendaMutation = () => {
   });
 
   const remove = useMutation({
-    mutationFn: agendaService.delete,
+    mutationFn: (id: string) => invoke("delete_agenda", { id }),
     onSuccess: () => {
       invalidate();
       toast.success("Agenda berhasil dihapus");

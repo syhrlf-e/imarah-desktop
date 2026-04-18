@@ -3,8 +3,9 @@ import InputLabel from '@/components/InputLabel';
 import PrimaryButton from '@/components/PrimaryButton';
 import TextInput from '@/components/TextInput';
 import { FormEventHandler, useState } from 'react';
-import api from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "@/components/Toast";
 
 interface Props {
     currentName: string;
@@ -31,21 +32,20 @@ export default function UpdateProfileInformationForm({
         setProcessing(true);
         setErrors({});
         try {
-            const res = await api.put('/profile', { name: data.name, email: data.email });
-            // Refresh user in context setelah update
-            const updated = res.data?.data?.user ?? res.data?.data ?? res.data;
+            const updated = await invoke<any>("update_profile", {
+                name: data.name,
+                email: data.email,
+            });
+
             if (updated && token) {
                 login(token, updated);
             }
             setRecentlySuccessful(true);
             setTimeout(() => setRecentlySuccessful(false), 2000);
+            toast.success("Profil berhasil diperbarui");
         } catch (err: any) {
-            const errData = err?.response?.data;
-            if (errData?.errors) {
-                Object.entries(errData.errors).forEach(([k, msgs]) =>
-                    setErrors(prev => ({ ...prev, [k]: (msgs as string[])[0] }))
-                );
-            }
+            console.error("Update profile failed:", err);
+            toast.error("Gagal memperbarui profil. Periksa koneksi internet Anda.");
         } finally {
             setProcessing(false);
         }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
+import { listen } from "@tauri-apps/api/event";
 
 interface Challenge {
   token: string;
@@ -10,21 +11,23 @@ export const useLoginChallenge = (userId: string | null) => {
   const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(
     null,
   );
-  const eventSourceRef = useRef<EventSource | null>(null);
   // Set untuk mencegah token yang sudah ditolak muncul lagi
   const rejectedTokensRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!userId) return;
 
-    // SSE disabled until API is configured - route() helper not available in Tauri SPA
-    // const eventSource = new EventSource('/api/notifications/sse');
-    // eventSourceRef.current = eventSource;
-    // eventSource.addEventListener("challenge", (e: MessageEvent) => { ... });
-    // eventSource.onerror = () => { ... };
+    // Listen to Rust "incoming-challenge" event
+    const unlistenIncoming = listen<Challenge>("incoming-challenge", (event) => {
+        const challenge = event.payload;
+        if (!rejectedTokensRef.current.has(challenge.token)) {
+            setActiveChallenge(challenge);
+        }
+    });
 
-    // cleanup placeholder (SSE disabled)
-    return () => {};
+    return () => {
+        unlistenIncoming.then(fn => fn());
+    };
   }, [userId]);
 
   const handleReject = async (token: string) => {
@@ -32,7 +35,7 @@ export const useLoginChallenge = (userId: string | null) => {
     setActiveChallenge(null);
 
     try {
-      await api.post("/login-challenge/reject", { token });
+      await api.post(`/auth/challenge/${token}/reject`);
     } catch (error) {
       console.error("Failed to reject challenge:", error);
     }
@@ -41,7 +44,7 @@ export const useLoginChallenge = (userId: string | null) => {
   const handleApprove = async (token: string) => {
     setActiveChallenge(null);
     try {
-      await api.post("/login-challenge/approve", { token });
+      await api.post(`/auth/challenge/${token}/approve`);
     } catch (error) {
       console.error("Failed to approve challenge:", error);
     }

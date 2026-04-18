@@ -12,6 +12,17 @@ export default defineConfig(async () => ({
     tailwindcss(),
   ],
 
+  optimizeDeps: {
+    exclude: [
+      "@tauri-apps/api",
+      "@tauri-apps/plugin-sql",
+      "@tauri-apps/plugin-store",
+      "@tauri-apps/plugin-dialog",
+      "@tauri-apps/plugin-fs",
+      "@tauri-apps/plugin-opener"
+    ],
+  },
+
   // Alias @/ → src/ agar Rollup bisa resolve saat build
   resolve: {
     alias: {

@@ -31,7 +31,7 @@ export default function DeleteUserForm({
     setProcessing(true);
     clearErrors();
     try {
-      await api.delete("/profile", { data: { password: data.password } });
+      await api.delete("/profile", { password: data.password });
       logout();
     } catch (err: any) {
       const errData = err?.response?.data;

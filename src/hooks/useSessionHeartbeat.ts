@@ -1,36 +1,23 @@
-import { useState, useEffect, useCallback } from "react";
-import api from "@/lib/api";
-
-const HEARTBEAT_INTERVAL_MS = 120_000; // 2 minutes
+import { useState, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 
 /**
- * Polls the backend session heartbeat to detect if the user's session
- * has been invalidated (e.g. kicked out by admin, token revoked).
- *
- * Returns `isKickedOut` flag that becomes true on 401/403 responses.
+ * Listens for the "session-revoked" event from Rust.
+ * This event is emitted by the background worker when it detects 
+ * an unauthorized or forbidden status during heartbeat polling.
  */
-export function useSessionHeartbeat(intervalMs: number = HEARTBEAT_INTERVAL_MS) {
+export function useSessionHeartbeat() {
   const [isKickedOut, setIsKickedOut] = useState(false);
 
-  const checkSession = useCallback(async () => {
-    try {
-      await api.get("/session-heartbeat", {
-        headers: { "X-Silent-Ping": "true" },
-      });
-    } catch (err: any) {
-      if (
-        err.response &&
-        (err.response.status === 401 || err.response.status === 403)
-      ) {
-        setIsKickedOut(true);
-      }
-    }
-  }, []);
-
   useEffect(() => {
-    const intervalId = setInterval(checkSession, intervalMs);
-    return () => clearInterval(intervalId);
-  }, [checkSession, intervalMs]);
+    const unlisten = listen("session-revoked", () => {
+      setIsKickedOut(true);
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  }, []);
 
   return { isKickedOut };
 }

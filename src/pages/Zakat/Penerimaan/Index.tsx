@@ -1,31 +1,29 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { usePenerimaanData, usePenerimaanMutation } from "@/hooks/api/useZakat";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import AppLayout from "@/layouts/AppLayout";
-import { useAuth } from "@/contexts/AuthContext";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import EmptyState from "@/components/EmptyState";
-import PenerimaanZakatFormPanel from "./Components/PenerimaanZakatFormPanel";
-import {
-    Trash2,
+import { useSearchParams } from "react-router-dom";
+import dayjs from "dayjs";
+import "dayjs/locale/id";
+import { 
+    Plus, 
+    Trash2, 
     ArrowUpDown,
     SlidersHorizontal,
-    Plus,
+    ChevronLeft,
+    ChevronRight,
+    Receipt,
 } from "lucide-react";
-import FilterBar from "@/components/FilterBar";
-import PageHeader from "@/components/PageHeader";
+import { motion, AnimatePresence } from "framer-motion";
+import { usePenerimaanData, usePenerimaanMutation } from "@/hooks/api/useZakat";
 import { useDate } from "@/hooks/useDate";
-import DataTable, { ColumnDef } from "@/components/DataTable";
+import { formatRupiah } from "@/utils/formatter";
+import PageHeader from "@/components/PageHeader";
+import FilterBar from "@/components/FilterBar";
+import EmptyState from "@/components/EmptyState";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import ZakatReceiptFormPanel from "./Components/PenerimaanZakatFormPanel";
+import { toast } from "@/components/Toast";
 
-const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-        style: "currency",
-        currency: "IDR",
-        minimumFractionDigits: 0,
-    }).format(amount);
-};
-
-interface ZakatTransaction {
+interface Transaction {
     id: string;
     transaction_no: string;
     effective_date: string;
@@ -36,54 +34,59 @@ interface ZakatTransaction {
     status: string;
 }
 
-const EMPTY_PAGE = { items: [], meta: { current_page: 1, last_page: 1, total: 0 } };
+const EMPTY_DATA = { data: [], meta: { current_page: 1, last_page: 1, total: 0 }, muzakkis: [] };
 
-export default function PenerimaanIndex() {
+export default function ZakatPenerimaanIndex() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user } = useAuth();
-    const canCreate = ["super_admin", "bendahara", "petugas_zakat"].includes(user?.role ?? '');
+    const search = searchParams.get("search") ?? "";
+    const sortOrder = searchParams.get("order") ?? "desc";
+    const page = searchParams.get("page") ?? "1";
 
-    const { data: res, isLoading } = usePenerimaanData(searchParams.toString());
+    const { data: zakatRes, isLoading } = usePenerimaanData(searchParams.toString());
     const { remove } = usePenerimaanMutation();
     
-    const rootData = res?.data ?? {};
-    const transactionsData = rootData.transactions ?? EMPTY_PAGE;
-    const items = transactionsData.items ?? [];
-    const meta = transactionsData.meta ?? EMPTY_PAGE.meta;
+    const zakatData = zakatRes || EMPTY_DATA;
+    const transactions: Transaction[] = zakatData.data || [];
+    const meta = zakatData.meta;
+    const muzakkis = zakatData.muzakkis || [];
 
     const { masehiDateStr, hijriDate } = useDate();
 
-    const [search, setSearch] = useState(searchParams.get('search') || "");
-    const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>(searchParams.get('order') as any || 'desc');
+    const [localSearch, setLocalSearch] = useState(search);
+    const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-    const handlePageNav = (page: number) => {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.set('page', String(page));
-        setSearchParams(nextParams, { replace: true });
+    const applyFilters = useCallback(
+        (params: { search?: string; order?: string; page?: string }) => {
+            const nextParams = new URLSearchParams(searchParams);
+            if (params.search !== undefined) nextParams.set("search", params.search);
+            if (params.order !== undefined) nextParams.set("order", params.order);
+            if (params.page !== undefined) nextParams.set("page", params.page);
+            setSearchParams(nextParams, { replace: true });
+        },
+        [searchParams, setSearchParams],
+    );
+
+    const handleSearchChange = (val: string) => {
+        setLocalSearch(val);
+        if (searchTimer.current) clearTimeout(searchTimer.current);
+        searchTimer.current = setTimeout(() => {
+            applyFilters({ search: val, page: "1" });
+        }, 500);
     };
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const nextParams = new URLSearchParams(searchParams);
-            if (search) {
-                nextParams.set('search', search);
-            } else {
-                nextParams.delete('search');
-            }
-            nextParams.set('page', '1');
-            setSearchParams(nextParams, { replace: true });
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [search]);
+    const handlePageNav = (direction: 1 | -1) => {
+        const nextPage = parseInt(page as string) + direction;
+        if (nextPage >= 1 && nextPage <= meta.last_page) {
+             applyFilters({ page: nextPage.toString() });
+        }
+    };
 
     const handleSort = () => {
         const nextOrder = sortOrder === 'desc' ? 'asc' : 'desc';
-        setSortOrder(nextOrder);
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.set('order', nextOrder);
-        setSearchParams(nextParams, { replace: true });
+        applyFilters({ order: nextOrder, page: "1" });
     };
 
     const handleCreate = () => setIsFormOpen(true);
@@ -97,129 +100,188 @@ export default function PenerimaanIndex() {
 
     return (
         <AppLayout title="Penerimaan Zakat">
-            <div className="contents">
-                <PageHeader
-                    title="Penerimaan Zakat"
-                    description="Catat dan kelola riwayat penerimaan zakat fitrah dan zakat maal."
-                >
-                    <div className="text-right">
-                        <p className="text-sm font-bold text-slate-900">{masehiDateStr}</p>
-                        <p className="text-xs text-slate-500 mt-1">{hijriDate}</p>
+            <PageHeader
+                title="Penerimaan Zakat"
+                description="Riwayat penerimaan zakat fitrah dan zakat maal."
+            >
+                <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">{masehiDateStr}</p>
+                    <p className="text-xs text-slate-500 mt-1">{hijriDate}</p>
+                </div>
+            </PageHeader>
+
+            <FilterBar
+                searchPlaceholder="Cari muzakki atau nomor transaksi..."
+                searchValue={localSearch}
+                onSearchChange={handleSearchChange}
+            >
+                <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handleSort}
+                        className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+                    >
+                        <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
+                        {sortOrder === 'desc' ? 'Terbaru' : 'Terlama'}
+                    </button>
+                    
+                    <button 
+                        onClick={handleCreate}
+                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer ml-2"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Catat Zakat
+                    </button>
+                </div>
+            </FilterBar>
+
+            {isLoading ? (
+                <div className="flex-1 min-h-[400px] flex items-center justify-center bg-white rounded-2xl shadow-sm border border-slate-200">
+                     <span className="text-slate-400">Loading...</span>
+                </div>
+            ) : (
+                <div className="flex-1 min-h-[400px] flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="overflow-auto flex-1">
+                        <table className="min-w-full text-sm text-left align-middle">
+                            <thead className="bg-slate-50 text-slate-500 text-xs font-semibold uppercase tracking-wider border-b border-slate-200 sticky top-0 z-20">
+                                <tr>
+                                    <th scope="col" className="px-6 py-4">Waktu & Transaksi</th>
+                                    <th scope="col" className="px-6 py-4">Nama Muzakki</th>
+                                    <th scope="col" className="px-6 py-4">Jenis Zakat</th>
+                                    <th scope="col" className="px-6 py-4 text-right">Nominal</th>
+                                    <th scope="col" className="px-6 py-4 text-right pr-6">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100/80">
+                                {transactions.length > 0 ? (
+                                    transactions.map((trx) => (
+                                        <tr key={trx.id} className="bg-white hover:bg-slate-50/80 transition-colors group">
+                                            <td className="px-6 py-4 whitespace-nowrap text-slate-600">
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-slate-700">
+                                                        {dayjs(trx.effective_date).format('DD MMM YYYY')}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                                                        {trx.transaction_no}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="font-bold text-slate-800">{trx.donatur_name}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                                                    trx.category === 'zakat_fitrah' 
+                                                    ? 'bg-blue-50 text-blue-700 border-blue-100' 
+                                                    : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                                }`}>
+                                                    {trx.category === 'zakat_fitrah' ? 'Zakat Fitrah' : 'Zakat Maal'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right font-bold text-emerald-600">
+                                                {formatRupiah(trx.amount)}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                                <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => handleDelete(trx.id)}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Hapus Catatan"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="py-12">
+                                            <div className="flex flex-col items-center justify-center text-center">
+                                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                                                    <Receipt className="w-8 h-8 text-slate-300" />
+                                                </div>
+                                                <h3 className="text-lg font-bold text-slate-800 mb-1">Belum ada riwayat penerimaan</h3>
+                                                <p className="text-sm text-slate-500 max-w-sm mb-6">
+                                                    Catatan penerimaan zakat masih kosong. Mulai catat zakat dari jamaah di sini.
+                                                </p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
-                </PageHeader>
+                </div>
+            )}
 
-                <FilterBar
-                    searchPlaceholder="Cari nomor transaksi atau nama muzakki..."
-                    searchValue={search}
-                    onSearchChange={setSearch}
-                >
-                    <div className="flex items-center gap-2">
-                        <button type="button" onClick={handleSort} className="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-slate-200 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-50 transition-colors shadow-sm cursor-pointer">
-                            <ArrowUpDown className="w-4 h-4 mr-2 text-slate-400" />
-                            {sortOrder === "desc" ? "Terbaru" : "Terlama"}
-                        </button>
+            <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-row items-center justify-between gap-3 mt-2 shrink-0">
+                <span className="text-sm text-slate-500">
+                    <span className="font-semibold text-slate-800">{meta.total}</span> data{" · Halaman "}
+                    <span className="font-semibold text-slate-800">{meta.current_page}</span> dari{" "}
+                    <span className="font-semibold text-slate-800">{meta.last_page}</span>
+                </span>
 
-                        {canCreate && (
-                            <button onClick={handleCreate} className="px-5 py-2.5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-colors font-bold text-sm shadow-sm flex items-center justify-center cursor-pointer ml-2">
-                                <Plus className="w-4 h-4 mr-2" />
-                                Catat Zakat
-                            </button>
-                        )}
-                    </div>
-                </FilterBar>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        disabled={meta.current_page <= 1}
+                        onClick={() => handlePageNav(-1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
 
-                <DataTable
-                    className="flex-1 min-h-0"
-                    tableFixed
-                    columns={
-                        [
-                            {
-                                key: "effective_date",
-                                header: "Tanggal",
-                                render: (trx) => (
-                                    <div className="flex flex-col">
-                                        <span className="font-medium text-slate-700">{trx.effective_date}</span>
-                                        <span className="text-xs text-slate-400 uppercase font-semibold tracking-tighter">{trx.transaction_no}</span>
-                                    </div>
-                                ),
-                            },
-                            {
-                                key: "donatur_name",
-                                header: "Nama Muzakki",
-                                cellClassName: "font-bold text-slate-800",
-                                render: (trx) => trx.donatur_name,
-                            },
-                            {
-                                key: "category",
-                                header: "Kategori",
-                                render: (trx) => (
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                        trx.category === "zakat_fitrah" 
-                                            ? "bg-blue-50 text-blue-700 border-blue-100" 
-                                            : "bg-indigo-50 text-indigo-700 border-indigo-100"
-                                    }`}>
-                                        {trx.category === "zakat_fitrah" ? "Zakat Fitrah" : "Zakat Maal"}
-                                    </span>
-                                ),
-                            },
-                            {
-                                key: "amount",
-                                header: "Total Bayar",
-                                cellClassName: "font-bold text-emerald-600",
-                                render: (trx) => formatCurrency(trx.amount),
-                            },
-                            {
-                                key: "status",
-                                header: "Status",
-                                render: (trx) => (
-                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                                        trx.status === "verified" 
-                                            ? "bg-emerald-50 text-emerald-700 border-emerald-100" 
-                                            : "bg-amber-50 text-amber-700 border-amber-100"
-                                    }`}>
-                                        {trx.status === "verified" ? "Terverifikasi" : "Menunggu"}
-                                    </span>
-                                )
-                            },
-                            {
-                                key: "actions",
-                                header: "Aksi",
-                                headerClassName: "text-right pr-6",
-                                cellClassName: "whitespace-nowrap text-right text-sm",
-                                render: (trx) => (
-                                    <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleDelete(trx.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Data"><Trash2 size={18} /></button>
-                                    </div>
-                                ),
-                            },
-                        ] satisfies ColumnDef<ZakatTransaction>[]
-                    }
-                    data={items}
-                    isLoading={isLoading}
-                    keyExtractor={(row) => row.id}
-                    emptyState={<EmptyState message={search ? "Data penerimaan tidak ditemukan." : "Belum ada riwayat penerimaan zakat."} />}
-                />
-                
-                {meta.last_page > 1 && (
-                    <div className="px-6 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between gap-3 mt-2 shrink-0">
-                        <span className="text-sm text-slate-500">
-                            <span className="font-semibold text-slate-800">{meta.total}</span> data{" · Halaman "}
-                            <span className="font-semibold text-slate-800">{meta.current_page}</span> dari <span className="font-semibold text-slate-800">{meta.last_page}</span>
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                            {Array.from({ length: meta.last_page }, (_, i) => i + 1).map(p => (
-                                <button key={p} type="button" onClick={() => handlePageNav(p)} className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${p === meta.current_page ? "bg-emerald-600 text-white border-emerald-600 cursor-default" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"}`}>
+                    <AnimatePresence mode="popLayout">
+                        {[meta.current_page - 1, meta.current_page, meta.current_page + 1]
+                            .filter((p) => p >= 1 && p <= meta.last_page)
+                            .map((p) => (
+                                <motion.button
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.2 }}
+                                    key={p}
+                                    type="button"
+                                    onClick={() => {
+                                        if (p !== meta.current_page) applyFilters({ page: p.toString() });
+                                    }}
+                                    className={`w-8 h-8 rounded-lg text-sm font-medium border transition-colors ${
+                                        p === meta.current_page
+                                            ? "bg-green-600 text-white border-green-600 cursor-default"
+                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                    }`}
+                                >
                                     {p}
-                                </button>
+                                </motion.button>
                             ))}
-                        </div>
-                    </div>
-                )}
+                    </AnimatePresence>
+
+                    <button
+                        type="button"
+                        disabled={meta.current_page >= meta.last_page}
+                        onClick={() => handlePageNav(1)}
+                        className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
-            <PenerimaanZakatFormPanel isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} muzakkis={rootData.muzakkis || []} />
-            <ConfirmDialog isOpen={!!confirmDeleteId} onClose={() => setConfirmDeleteId(null)} onConfirm={confirmDelete} title="Hapus Transaksi?" variant="danger">
-                Apakah Anda yakin ingin menghapus catatan penerimaan ini? Tindakan ini akan menghapus transaksi kas terkait secara permanen.
+            <ZakatReceiptFormPanel 
+                isOpen={isFormOpen} 
+                onClose={() => setIsFormOpen(false)} 
+                muzakkis={muzakkis}
+            />
+
+            <ConfirmDialog
+                isOpen={!!confirmDeleteId}
+                onClose={() => setConfirmDeleteId(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Catatan Zakat?"
+                variant="danger"
+            >
+                Apakah Anda yakin ingin menghapus catatan penerimaan zakat ini? Saldo kas terkait akan ikut menyesuaikan.
             </ConfirmDialog>
         </AppLayout>
     );

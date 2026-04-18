@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { inventarisService } from "@/services/inventarisService";
-import { toast } from "sonner";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "@/components/Toast";
 
 export const useInventarisData = (params: string) => {
   return useQuery({
     queryKey: ["inventaris", params],
-    queryFn: () => inventarisService.getAll(params),
+    queryFn: () => invoke<any>("list_inventaris", { params }),
     placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000,
   });
@@ -19,7 +19,7 @@ export const useInventarisMutation = () => {
   };
 
   const store = useMutation({
-    mutationFn: inventarisService.create,
+    mutationFn: (data: any) => invoke("create_inventaris", { data }),
     onSuccess: () => {
       invalidate();
       toast.success("Barang inventaris berhasil disimpan");
@@ -28,7 +28,8 @@ export const useInventarisMutation = () => {
   });
 
   const update = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => inventarisService.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => 
+        invoke("update_inventaris", { id, data }),
     onSuccess: () => {
       invalidate();
       toast.success("Barang inventaris berhasil diperbarui");
@@ -37,7 +38,7 @@ export const useInventarisMutation = () => {
   });
 
   const remove = useMutation({
-    mutationFn: inventarisService.delete,
+    mutationFn: (id: string) => invoke("delete_inventaris", { id }),
     onSuccess: () => {
       invalidate();
       toast.success("Barang inventaris berhasil dihapus");

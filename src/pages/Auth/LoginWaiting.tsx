@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 interface Props {
   token?: string;
@@ -18,15 +20,49 @@ export default function LoginWaiting({ token: propsToken = "", expiresIn = 45 }:
   const token = location.state?.challengeToken || propsToken;
   const [status, setStatus] = useState<Status>("waiting");
   const [secondsLeft, setSecondsLeft] = useState(expiresIn);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Security Guard: Cegah polling tanpa token
   useEffect(() => {
     if (!token) {
         navigate("/login", { replace: true });
+    } else {
+        // Start Rust listener
+        invoke("start_challenge_listener", { token });
     }
   }, [token, navigate]);
+
+  // Listen to Rust events
+  useEffect(() => {
+    const unlisten = listen<{ status: Status; token: string }>("challenge-status-changed", (event) => {
+        if (event.payload.token === token) {
+            const newStatus = event.payload.status;
+            if (newStatus === "approved") {
+                setStatus("approved");
+                setTimeout(async () => {
+                    try {
+                        const finalizeRes = await api.post(`/auth/challenge/${token}/finalize`);
+                        const finalData = finalizeRes.data;
+                        if (finalData.status === 'success' && finalData.data) {
+                            login(finalData.data.token, finalData.data.user);
+                            navigate('/dashboard', { replace: true });
+                        } else {
+                            navigate('/login');
+                        }
+                    } catch {
+                        navigate('/login');
+                    }
+                }, 1500);
+            } else {
+                setStatus(newStatus);
+            }
+        }
+    });
+
+    return () => {
+        unlisten.then((fn) => fn());
+    };
+  }, [token, navigate, login]);
 
   const getColor = () => {
     if (secondsLeft > 20) return "#22C55E";
@@ -65,62 +101,6 @@ export default function LoginWaiting({ token: propsToken = "", expiresIn = 45 }:
       setTimeout(() => navigate("/login"), 3000); // Otomatis kembali ke login setelah 3 detik lihat pesan
     }
   }, [secondsLeft, status, navigate]);
-
-  // Polling status setiap 2 detik dengan AbortController
-  useEffect(() => {
-    if (status !== "waiting" || !token) return;
-
-    let controller = new AbortController();
-
-    const poll = async () => {
-      try {
-        const res = await api.get(`/auth/challenge/${token}/status`, {
-          signal: controller.signal,
-        });
-        const data = res.data;
-
-        if (data.status === "approved") {
-          setStatus("approved");
-          setTimeout(() => {
-            // Karena ini adalah endpoint API yang membalikkan token baru yang berhasil di-approve, 
-            // idealnya login handler menyedot token ini dan mengatur state auth. 
-            api.post(`/auth/challenge/${token}/finalize`)
-              .then((finalizeRes) => {
-                 const finalData = finalizeRes.data;
-                 if (finalData.status === 'success' && finalData.data) {
-                     login(finalData.data.token, finalData.data.user);
-                     navigate('/dashboard', { replace: true });
-                 } else {
-                     navigate('/login');
-                 }
-              })
-              .catch(() => navigate('/login'));
-          }, 1500);
-        } else if (data.status === "rejected") {
-          setStatus("rejected");
-        } else if (data.status === "expired") {
-          setStatus("expired");
-        }
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name === "AbortError") return; // Fetch di-abort — normal, abaikan
-        // Network error lain — polling akan coba lagi
-      }
-    };
-
-    // Panggil langsung pertama kali
-    poll();
-
-    pollingRef.current = setInterval(() => {
-      controller.abort(); // Cancel request sebelumnya
-      controller = new AbortController(); // Buat controller baru
-      poll();
-    }, 2000);
-
-    return () => {
-      clearInterval(pollingRef.current!);
-      controller.abort(); // Cancel request saat unmount
-    };
-  }, [token, status]);
 
   // TAMPILAN WAITING — Progress bar melingkar
   if (status === "waiting") {

@@ -13,6 +13,14 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-start-dragging",
     "core:window:allow-destroy",
-    "store:default"
+    "store:default",
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-load",
+    "sql:allow-close",
+    "dialog:default",
+    "fs:default",
+    "core:event:default"
   ]
 }

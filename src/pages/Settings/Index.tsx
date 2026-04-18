@@ -12,7 +12,7 @@ import {
 import PageHeader from "@/components/PageHeader";
 
 import { useSettingsData, useSettingsMutation } from "@/hooks/api/useSettings";
-import { toast } from "sonner";
+import { toast } from "@/components/Toast";
 
 export default function SettingsIndex() {
     const { data: serverSettings, isLoading: loadingSettings } = useSettingsData();
